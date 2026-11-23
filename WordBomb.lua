@@ -1,11 +1,16 @@
 -- Roblox script for Word Bomb by OMG. Made by Shall, with the use of Gemini, and Claude.
 -- !!! I USED POTASSIUM EXECUTOR FOR THIS, I DONT KNOW ABOUT MOBILE eg: Delta OR OTHER FREE EXECUTORS eg: Xeno. SO IF IT DOESNT WORK, I AM REALLY SORRY, I WILL WORK ON AN OPTIMIZATION IF THAT HAPPENS !!!
+-- There is also unremoved bs so yeeee, but it works, so dont complain!
+
+-- THE SHORT SCRIPT ----------> loadstring(game:HttpGet("https://raw.githubusercontent.com/Shall-Likes-Robloc/Word-Bomb-Script/refs/heads/main/WordBomb.lua"))()
 
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local GuiService = game:GetService("GuiService")
+local okVIM, vimService = pcall(game.GetService, game, "VirtualInputManager")
+local VirtualInputManager = okVIM and vimService or nil
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -15,23 +20,21 @@ local HAS_KEYPRESS = (type(keypress) == "function" and type(keyrelease) == "func
 local CONFIG = {
     WordBankFile = "word_bomb.txt",
     Enabled = true,
-    PreferLonger = true,             -- true = Longest words first, false = Shortest first
+    AutoJoin = false,                -- Automatically clicks "Click to join" between rounds
+    LengthMode = "Longest",          -- "Shortest" | "Longest" | "XXL"
     HumanTypos = false,              -- Occasional neighbor-key typo + backspace
     ThinkDelay = false,              -- 0.35-1.0s reaction pause before auto-typing
     CalibrateKey = Enum.KeyCode.F1,  -- Calibrate when arrow is on you (+ type)
-    ResetUsedKey = Enum.KeyCode.F2,  -- Reset word bank after every round
+    ResetUsedKey = Enum.KeyCode.F2,  -- Full round reset (word bank + calibration)
     TurnSettleDelay = 0.16,
     ArrowStableTime = 0.12,
-    MaxAttemptsPerTurn = 2,
+    MaxAttemptsPerTurn = 6,
     MinKeyDelay = 0.04,
     MaxKeyDelay = 0.09,
-    RetryDelay = 0.85,
+    RetryDelay = 0.65,
     InputMode = HAS_KEYPRESS and "OS" or "Direct",
 }
 
---[[This is an embedded word bank, meaning you dont have to have a .txt in your executor workspace for it to work.
-It contains, probably, all current letter combos in the game. This word bank is 100% AI generated.
-Word bank ends on line 7492]]
 local EMBEDDED_WORD_BANK = [==[
 [AA] aardvark, aah, baa, bazaar, naan, haar, salaam
 [AB] able, about, cabin, crab, table, label, above
@@ -7493,20 +7496,315 @@ local EMBEDDED_WORD_BANK = [==[
 [ZZLY] drizzly, frizzly, grizzly
 ]==]
 
+-- Paste your XXL words inside the braces below (quoted, comma-separated)
+local XXL_WORD_BANK = [==[
+    "hippopotomonstrosesquippedaliophobia",
+    "dichlorodiphenyltrichloroethane",
+    "esophagogastroduodenoscopy",
+    "ethylenediaminetetraacetic",
+    "psychoneuroimmunology",
+    "pancreaticoduodenectomy",
+    "dihydroxyphenylalanine",
+    "methylchloroisothiazolinone",
+    "hydrochlorofluorocarbons",
+    "electrophysiologically",
+    "ultrasonographically",
+    "psychopathologically",
+    "psychotherapeutically",
+    "magnetoencephalography",
+    "hexamethylenetetramine",
+    "phosphatidylethanolamine",
+    "carboxymethylcellulose",
+    "polydimethylsiloxane",
+    "oophorosalpingectomy",
+    "otolaryngologically",
+    "antiauthoritarianism",
+    "counterproductively",
+    "psychophysiological",
+    "hyperresponsiveness",
+    "misconceptualization",
+    "dimethylaminobenzaldehyde",
+    "perfluorooctanoic",
+    "stoichiometrically",
+    "electrocardiographically",
+    "neurodegenerative",
+    "ethnomusicologically",
+    "sociolinguistically",
+    "psycholinguistically",
+    "institutionalizations",
+    "internationalizations",
+    "counterintuitively",
+    "anthropocentrically",
+    "interferometrically",
+    "nanotechnologically",
+    "biotechnologically",
+    "geomorphologically",
+    "oceanographically",
+    "meteorologically",
+    "geochronologically",
+    "stratigraphically",
+    "sedimentologically",
+    "micropaleontology",
+    "archaeoastronomy",
+    "anthropologically",
+    "phenomenologically",
+    "epistemologically",
+    "teleologically",
+    "hermeneutically",
+    "unphilosophically",
+    "professionalization",
+    "industrialization",
+    "commercialization",
+    "decentralization",
+    "individualistically",
+    "uncompromisingly",
+    "unsophisticatedness",
+    "unenthusiastically",
+    "unsatisfactorily",
+    "irresponsibilities",
+    "irreconcilability",
+    "irreproducibility",
+    "incompatibilities",
+    "incontrovertibility",
+    "inextinguishability",
+    "indefatigability",
+    "imperturbability",
+    "impenetrability",
+    "insurmountability",
+    "unquestioningly",
+    "unrecognizability",
+    "overgeneralization",
+    "overspecialization",
+    "underappreciation",
+    "misrepresentations",
+    "miscommunications",
+    "misunderstandings",
+    "hyperventilation",
+    "hypersensitivities",
+    "anthropomorphism",
+    "counterbalancing",
+    "counterinsurgency",
+    "counterclockwise",
+    "counteroffensives",
+    "antiestablishment",
+    "anticonstitutional",
+    "authoritarianism",
+    "totalitarianism",
+    "parliamentarianism",
+    "humanitarianism",
+    "egalitarianism",
+    "utilitarianism",
+    "disestablishment",
+    "multidisciplinary",
+    "interdisciplinary",
+    "transdisciplinary",
+    "intercontinental",
+    "intergovernmental",
+    "intercommunication",
+    "interoperability",
+    "interpenetration",
+    "interdependencies",
+    "intersubjectivity",
+    "supersymmetrical",
+    "hypersensitivity",
+    "hyperextension",
+    "hydroelectricity",
+    "hydrodynamically",
+    "aerodynamically",
+    "thermoregulation",
+    "thermoelectricity",
+    "photosynthetically",
+    "photoperiodism",
+    "photochemistry",
+    "photoelectrically",
+    "phosphorescence",
+    "bioelectromagnetics",
+    "electrostatically",
+    "electrochemically",
+    "electromechanically",
+    "electrodynamometer",
+    "thermoluminescence",
+    "bioluminescence",
+    "photoluminescence",
+    "electroluminescence",
+    "spectroscopically",
+    "spectrophotometer",
+    "spectrophotometry",
+    "chromatographically",
+    "crystallography",
+    "magnetoresistance",
+    "superconductivity",
+    "overcompensation",
+    "overindulgence",
+    "overestimation",
+    "unmanageability",
+    "unfathomableness",
+    "unpronounceable",
+    "unmistakability",
+    "uncomfortableness",
+    "unconventionality",
+    "unceremoniously",
+    "unprecedentedly",
+    "unsurprisingly",
+    "disenchantment",
+    "disillusionment",
+    "discontinuously",
+    "disorganization",
+    "disinterestedness",
+    "deoxyribonucleic",
+    "deoxyribonucleotide",
+    "deoxyribonuclease",
+    "ribonucleoprotein",
+    "ribonucleotide",
+    "oligonucleotide",
+    "oligosaccharide",
+    "polysaccharide",
+    "monosaccharide",
+    "polyunsaturated",
+    "dehydrogenation",
+    "decarboxylation",
+    "phosphorylation",
+    "glycosylation",
+    "polymerization",
+    "electrophoresis",
+    "electronegativity",
+    "stereochemistry",
+    "stereoisomerism",
+    "tautomerization",
+    "hydrophobicity",
+    "hydrophilicity",
+    "lipophilicity",
+    "organophosphate",
+    "organometallic",
+    "organochlorine",
+    "chlorobenzene",
+    "nitrobenzene",
+    "benzodiazepine",
+    "phenobarbital",
+    "acetaminophen",
+    "hydrocortisone",
+    "chlorpromazine",
+    "sulfamethoxazole",
+    "streptomycin",
+    "erythromycin",
+    "cyclophosphamide",
+    "hydroxychloroquine",
+    "trichloroethylene",
+    "tetrachloroethylene",
+    "polyvinylpyrrolidone",
+    "polyvinylchloride",
+    "polyisobutylene",
+    "dimethylsulfoxide",
+    "diethylstilbestrol",
+    "phenylethylamine",
+    "paraformaldehyde",
+    "trinitrotoluene",
+    "tetrahydrocannabinol",
+    "phosphatidylcholine",
+    "acetylcholinesterase",
+    "acetylcholine",
+    "cyclooxygenase",
+    "phosphofructokinase",
+    "glyceraldehyde",
+    "dehydrogenase",
+    "immunoglobulin",
+    "immunosuppressant",
+    "immunodeficiency",
+    "immunofluorescence",
+    "immunocompromised",
+    "immunosuppression",
+    "hematopoietic",
+    "erythropoiesis",
+    "erythropoietin",
+    "thrombolysis",
+    "hemodynamically",
+    "angiogenesis",
+    "cardiomyopathy",
+    "cardiopulmonary",
+    "cardiovascular",
+    "cerebrovascular",
+    "gastroenterology",
+    "gastroenteritis",
+    "gastrointestinal",
+    "gastroesophageal",
+    "endocrinologist",
+    "endocrinology",
+    "neurosurgeon",
+    "neuroanatomical",
+    "neurotransmitter",
+    "neuropathologist",
+    "neurofibromatosis",
+    "psychosomatically",
+    "parapsychological",
+    "pharmacokinetics",
+    "pharmacodynamics",
+    "pharmacologically",
+    "pharmaceutically",
+    "toxicologically",
+    "epidemiologically",
+    "bacteriologically",
+    "microbiologically",
+    "histopathological",
+    "cytopathological",
+    "radiographically",
+    "echocardiography",
+    "angiocardiography",
+    "electromyography",
+    "mammographically",
+    "laryngopharyngeal",
+    "nasopharyngeal",
+    "temporomandibular",
+    "sternoclavicular",
+    "sternocleidomastoid",
+    "gastrocnemius",
+    "musculoskeletal",
+    "costochondritis",
+    "osteoarthritis",
+    "rhabdomyolysis",
+    "hepatosplenomegaly",
+    "lymphadenopathy",
+    "hyperthyroidism",
+    "hypothyroidism",
+    "hypercalcemia",
+    "hyponatremia",
+    "hyperkalemia",
+    "hyperlipidemia",
+    "hypoglycemia",
+    "hypoglycemically",
+    "hypertriglyceridemia",
+    "hyperbilirubinemia",
+    "ketoacidosis",
+    "glomerulonephritis",
+    "thrombocytopenia",
+    "agranulocytosis",
+    "hemoglobinopathy",
+    "cytomegalovirus",
+    "dermatomyositis",
+    "encephalopathy",
+    "cholecystectomy",
+    "pericardiocentesis",
+    "ophthalmologically",
+    "phenylketonuria",
+    "phenylalanine",
+    "norepinephrine",
+]==]
+
 local INPUT_MODES = {
     { Id = "OS",     Name = "OS Keys", Desc = "Simulates real key presses (most reliable — keep Roblox focused)." },
     { Id = "Direct", Name = "Direct",  Desc = "Writes straight into the box without OS keypresses." },
 }
 
 local LENGTH_MODES = {
-    { PreferLonger = true,  Name = "Longest"  },
-    { PreferLonger = false, Name = "Shortest" },
+    { Id = "Shortest", Name = "Shortest", Sub = "Shortest first"        },
+    { Id = "Longest",  Name = "Longest",  Sub = "Longest first"         },
+    { Id = "XXL",      Name = "XXL",      Sub = "16-45 letter monsters" },
 }
 
 local SPEED_PRESETS = {
-    { Name = "Human",  Min = 0.08,  Max = 0.15 },
-    { Name = "Normal", Min = 0.04,  Max = 0.09 },
-    { Name = "Fast",   Min = 0.015, Max = 0.04 },
+    { Name = "Human",  Min = 0.08,  Max = 0.15  },
+    { Name = "Normal", Min = 0.04,  Max = 0.09  },
+    { Name = "Fast",   Min = 0.015, Max = 0.04  },
+    { Name = "Ultra",  Min = 0.002, Max = 0.004 },
 }
 
 local THEMES = {
@@ -7559,7 +7857,7 @@ local STATE: { [string]: any } = {
     isTyping = false,
     isWindowFocused = true,
     isCalibrated = false,
-    arrowMotionVerified = false,
+    arrowVerified = false,
     currentlyMyTurn = false,
     wasMyTurn = false,
     themeIndex = 1,
@@ -7567,30 +7865,50 @@ local STATE: { [string]: any } = {
 
     -- Word bank
     comboMap = {},
+    comboSortedDir = {},
     masterWordList = {},
     masterWordSet = {},
+    masterSortedDir = nil,
+    xxlWords = {},
     usedWords = {},
     usedCount = 0,
     mySentCount = 0,
     otherUsedCount = 0,
     fileLoaded = false,
-    loadedFileName = nil,
     loadError = nil,
 
     -- UI & connections
     connections = {},
     guiListenerConns = {},
+    boxGuiConn = nil,
     hookedPromptGui = nil,
     lastDetectedBox = nil,
     lastPromptGui = nil,
     lastPromptLabel = nil,
+    lastComboScanAt = 0,
+    lastRawCombo = nil,
+    lastObserveAt = 0,
     activeTurnPlayerPos = nil,
     turnSourceText = "Uncal",
     lastHeadline = "",
     lastDetail = "",
     diagText = "Not calibrated",
 
-    -- Player name & UserId cache
+    -- Auto-Join lobby timers
+    lastAutoJoinScan = 0,
+    lastAutoJoinClick = 0,
+    autoJoining = false,
+
+    -- Box* turn detector
+    turnTypebox = nil,
+    turnTypeboxGui = nil,
+    learnedBoxPath = nil,
+    typeboxVerified = false,
+    sawNoTypebox = false,
+    lastBoxLookupAt = 0,
+    boxMissingOnMeSince = nil,
+
+    -- Player cache
     playerLookup = {},
     playerNamesSet = {},
     playerByIdStr = {},
@@ -7603,10 +7921,12 @@ local STATE: { [string]: any } = {
     learnedArrowPath = nil,
     learnedPivotMode = "self",
     confirmedArrow = nil,
-    arrowMode = "rot",
+    arrowHiddenSince = nil,
     manualArrowOffset = nil,
     lastArrowSample = nil,
     arrowStableSince = 0,
+    rawArrowRotSample = nil,
+    rawArrowStableSince = 0,
     samePlayerTarget = nil,
     samePlayerSince = 0,
     cachedArenaPlayers = {},
@@ -7614,18 +7934,14 @@ local STATE: { [string]: any } = {
     cachedArenaAt = 0,
     reacquireHistory = {},
 
-    -- Replicated state turn tracker
-    stateCandidates = {},
-    confirmedState = nil,
-    lastStateScan = 0,
-
-    -- Locked combo, and oppent word tracker
+    -- Locked combo & opponent tracker
     lockedCombo = nil,
     lockedForPlayer = nil,
     prevTurnCombo = nil,
     comboUnlockedAt = 0,
+    pendingComboText = nil,
+    pendingComboSince = nil,
     promptMissingSince = nil,
-    trackedTurnPlayer = nil,
     pendingOtherWord = nil,
     pendingOtherConf = 0,
     finishedOtherWord = nil,
@@ -7642,7 +7958,6 @@ local Detector: { [string]: any } = {}
 local Tracker: { [string]: any } = {}
 local Typer: { [string]: any } = {}
 
--- Player maps (names, display names, and UserIds)
 local function refreshPlayerCache()
     table.clear(STATE.playerLookup)
     table.clear(STATE.playerNamesSet)
@@ -7661,15 +7976,14 @@ end
 refreshPlayerCache()
 table.insert(STATE.connections, Players.PlayerAdded:Connect(refreshPlayerCache))
 table.insert(STATE.connections, Players.PlayerRemoving:Connect(refreshPlayerCache))
-table.insert(STATE.connections, UserInputService.WindowFocused:Connect(function()
-    STATE.isWindowFocused = true
-end))
-table.insert(STATE.connections, UserInputService.WindowFocusReleased:Connect(function()
-    STATE.isWindowFocused = false
-end))
+table.insert(STATE.connections, UserInputService.WindowFocused:Connect(function() STATE.isWindowFocused = true end))
+table.insert(STATE.connections, UserInputService.WindowFocusReleased:Connect(function() STATE.isWindowFocused = false end))
 
 
--- 1. EMBEDDED WORD BANK MODULE
+-- 1. WORD BANK (LAZY SORTED + XXL SUPPORT)
+
+local function sortLonger(a, b) return #a > #b end
+local function sortShorter(a, b) return #a < #b end
 
 function Bank.parse(rawText)
     local comboMap, allWordsSet, allWordsList = {}, {}, {}
@@ -7688,7 +8002,11 @@ function Bank.parse(rawText)
             local lowerRest = rest:lower()
             if not lowerRest:find("skip", 1, true) and not lowerRest:find("verified below", 1, true) then
                 rest = rest:gsub("%(5%-letter bonus%)", "")
-                comboMap[combo] = comboMap[combo] or {}
+                local bucket = comboMap[combo]
+                if not bucket then
+                    bucket = {}
+                    comboMap[combo] = bucket
+                end
                 local lowerCombo = combo:lower()
 
                 for entry in rest:gmatch("[^,]+") do
@@ -7696,7 +8014,7 @@ function Bank.parse(rawText)
                     if not lowerEntry:find("%(no") and not lowerEntry:find("%(proper") and not lowerEntry:find("%(skip") then
                         local word = lowerEntry:match("^%s*([a-z]+)%s*$")
                         if word and word:find(lowerCombo, 1, true) then
-                            table.insert(comboMap[combo], word)
+                            table.insert(bucket, word)
                             if not allWordsSet[word] then
                                 allWordsSet[word] = true
                                 table.insert(allWordsList, word)
@@ -7722,28 +8040,56 @@ function Bank.parse(rawText)
 end
 
 function Bank.sort()
-    local cmp = CONFIG.PreferLonger
-        and function(a, b) return #a > #b end
-        or function(a, b) return #a < #b end
+    table.clear(STATE.comboSortedDir)
+    STATE.masterSortedDir = nil
+    local preferLonger = (CONFIG.LengthMode ~= "Shortest")
+    local cmp = preferLonger and sortLonger or sortShorter
+    task.defer(function()
+        if #STATE.masterWordList > 0 and STATE.masterSortedDir ~= preferLonger then
+            table.sort(STATE.masterWordList, cmp)
+            STATE.masterSortedDir = preferLonger
+        end
+    end)
+end
 
-    for _, list in pairs(STATE.comboMap) do
-        table.sort(list, cmp)
+local function loadXXLWords()
+    table.clear(STATE.xxlWords)
+    local seen = {}
+
+    local function addWord(raw)
+        local word = raw:lower():gsub("[\"'`]", ""):match("^%s*([a-z]+)%s*$")
+        if word and #word >= 2 and not seen[word] then
+            seen[word] = true
+            table.insert(STATE.xxlWords, word)
+            STATE.masterWordSet[word] = true
+        end
     end
-    table.sort(STATE.masterWordList, cmp)
+
+    if type(XXL_WORD_BANK) == "string" then
+        for token in XXL_WORD_BANK:gmatch("[^,%s\r\n]+") do
+            addWord(token)
+        end
+    elseif type(XXL_WORD_BANK) == "table" then
+        for _, raw in ipairs(XXL_WORD_BANK) do
+            if type(raw) == "string" then
+                addWord(raw)
+            end
+        end
+    end
+
+    table.sort(STATE.xxlWords, sortLonger)
 end
 
 function Bank.findFile()
     if not isfile then
         return nil, "Executor missing isfile()"
     end
-
     for _, name in ipairs({ CONFIG.WordBankFile, "word_bomb.txt", "word_bomb", "word_bomb.txt.txt" }) do
         local ok, exists = pcall(isfile, name)
         if ok and exists then
             return name, nil
         end
     end
-
     if listfiles then
         local ok, files = pcall(listfiles, "")
         if ok and type(files) == "table" then
@@ -7757,18 +8103,16 @@ function Bank.findFile()
             end
         end
     end
-
     return nil, "Not found: word_bomb.txt in workspace"
 end
 
 function Bank.load()
     if type(EMBEDDED_WORD_BANK) == "string" and EMBEDDED_WORD_BANK:match("%S") then
         STATE.comboMap, STATE.masterWordList, STATE.masterWordSet = Bank.parse(EMBEDDED_WORD_BANK)
+        loadXXLWords()
         Bank.sort()
         if #STATE.masterWordList > 0 then
-            STATE.fileLoaded = true
-            STATE.loadedFileName = "Embedded"
-            STATE.loadError = nil
+            STATE.fileLoaded, STATE.loadError = true, nil
             return true
         end
     end
@@ -7791,6 +8135,7 @@ function Bank.load()
     end
 
     STATE.comboMap, STATE.masterWordList, STATE.masterWordSet = Bank.parse(rawText)
+    loadXXLWords()
     Bank.sort()
 
     if #STATE.masterWordList == 0 then
@@ -7798,23 +8143,41 @@ function Bank.load()
         return false
     end
 
-    STATE.fileLoaded = true
-    STATE.loadedFileName = path
-    STATE.loadError = nil
+    STATE.fileLoaded, STATE.loadError = true, nil
     return true
 end
 
-function Bank.findWord(combo)
+function Bank.findWord(combo, skipXXL)
     combo = combo:upper()
     local lowerCombo = combo:lower()
+
+    if CONFIG.LengthMode == "XXL" and not skipXXL then
+        for _, word in ipairs(STATE.xxlWords) do
+            if not STATE.usedWords[word] and word:find(lowerCombo, 1, true) then
+                return word
+            end
+        end
+    end
+
+    local preferLonger = (CONFIG.LengthMode ~= "Shortest")
+    local cmp = preferLonger and sortLonger or sortShorter
     local directList = STATE.comboMap[combo]
 
     if directList then
+        if STATE.comboSortedDir[combo] ~= preferLonger then
+            table.sort(directList, cmp)
+            STATE.comboSortedDir[combo] = preferLonger
+        end
         for _, word in ipairs(directList) do
             if not STATE.usedWords[word] then
                 return word
             end
         end
+    end
+
+    if STATE.masterSortedDir ~= preferLonger then
+        table.sort(STATE.masterWordList, cmp)
+        STATE.masterSortedDir = preferLonger
     end
 
     for _, word in ipairs(STATE.masterWordList) do
@@ -7832,7 +8195,8 @@ end
 
 
 -- 2. THE UI
-local EXPANDED_W, EXPANDED_H = 364, 524
+
+local EXPANDED_W, EXPANDED_H = 364, 584
 local CUBE_SIZE = 64
 
 local function create(className, props, parent)
@@ -7870,10 +8234,8 @@ end
 
 UI.dragActive = false
 UI.smoothLerpActive = false
-UI.dragTargetX = 24
-UI.dragTargetY = 120
-UI.curX = 24
-UI.curY = 120
+UI.dragTargetX, UI.dragTargetY = 24, 120
+UI.curX, UI.curY = 24, 120
 
 local function startSmoothDragLoop()
     table.insert(STATE.connections, RunService.RenderStepped:Connect(function(dt)
@@ -7881,13 +8243,12 @@ local function startSmoothDragLoop()
             return
         end
         local alpha = 1 - math.exp(-20 * math.min(dt, 0.1))
-        UI.curX = UI.curX + (UI.dragTargetX - UI.curX) * alpha
-        UI.curY = UI.curY + (UI.dragTargetY - UI.curY) * alpha
+        UI.curX += (UI.dragTargetX - UI.curX) * alpha
+        UI.curY += (UI.dragTargetY - UI.curY) * alpha
         UI.mainFrame.Position = UDim2.fromOffset(math.floor(UI.curX + 0.5), math.floor(UI.curY + 0.5))
 
         if not UI.dragActive and math.abs(UI.dragTargetX - UI.curX) < 0.4 and math.abs(UI.dragTargetY - UI.curY) < 0.4 then
-            UI.curX = UI.dragTargetX
-            UI.curY = UI.dragTargetY
+            UI.curX, UI.curY = UI.dragTargetX, UI.dragTargetY
             UI.mainFrame.Position = UDim2.fromOffset(math.floor(UI.curX + 0.5), math.floor(UI.curY + 0.5))
             UI.smoothLerpActive = false
         end
@@ -7895,9 +8256,7 @@ local function startSmoothDragLoop()
 end
 
 function UI.setMinimized(minimize)
-    if not UI.mainFrame then
-        return
-    end
+    if not UI.mainFrame then return end
     UI.minimized = minimize
     local theme = getTheme()
     local tweenInfo = TweenInfo.new(0.24, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
@@ -7908,52 +8267,36 @@ function UI.setMinimized(minimize)
         UI.bodyFrame.Visible = false
         UI.footerFrame.Visible = false
         UI.cubeOverlay.Visible = true
-        TweenService:Create(UI.mainFrame, tweenInfo, {
-            Size = UDim2.fromOffset(CUBE_SIZE, CUBE_SIZE),
-        }):Play()
-        TweenService:Create(UI.mainStroke, tweenInfo, {
-            Color = theme.Primary,
-            Thickness = 2,
-        }):Play()
+        TweenService:Create(UI.mainFrame, tweenInfo, { Size = UDim2.fromOffset(CUBE_SIZE, CUBE_SIZE) }):Play()
+        TweenService:Create(UI.mainStroke, tweenInfo, { Color = theme.Primary, Thickness = 2 }):Play()
     else
         UI.smoothLerpActive = false
         local cx, cy = clampOffset(UI.mainFrame.Position.X.Offset, UI.mainFrame.Position.Y.Offset, EXPANDED_W, EXPANDED_H)
-        UI.curX, UI.curY = cx, cy
-        UI.dragTargetX, UI.dragTargetY = cx, cy
-
+        UI.curX, UI.curY, UI.dragTargetX, UI.dragTargetY = cx, cy, cx, cy
         UI.cubeOverlay.Visible = false
         UI.header.Visible = true
         UI.tabBar.Visible = true
         UI.bodyFrame.Visible = true
         UI.footerFrame.Visible = true
-
         TweenService:Create(UI.mainFrame, tweenInfo, {
             Size = UDim2.fromOffset(EXPANDED_W, EXPANDED_H),
             Position = UDim2.fromOffset(math.floor(cx), math.floor(cy)),
         }):Play()
-        TweenService:Create(UI.mainStroke, tweenInfo, {
-            Color = COLORS.Border,
-            Thickness = 1.4,
-        }):Play()
+        TweenService:Create(UI.mainStroke, tweenInfo, { Color = COLORS.Border, Thickness = 1.4 }):Play()
     end
 end
 
 function UI.selectTab(tabName)
     STATE.activeTab = tabName
     local isPlay = (tabName == "Play")
-    if UI.playPage then
-        UI.playPage.Visible = isPlay
-    end
-    if UI.settingsPage then
-        UI.settingsPage.Visible = not isPlay
-    end
+    if UI.playPage then UI.playPage.Visible = isPlay end
+    if UI.settingsPage then UI.settingsPage.Visible = not isPlay end
     local theme = getTheme()
     if UI.playTabBtn and UI.settingsTabBtn then
         UI.playTabBtn.TextColor3 = isPlay and COLORS.Text or COLORS.SubText
         UI.playTabBtn.BackgroundColor3 = isPlay and COLORS.Bg or COLORS.Header
         UI.playTabLine.BackgroundColor3 = theme.Primary
         UI.playTabLine.Visible = isPlay
-
         UI.settingsTabBtn.TextColor3 = (not isPlay) and COLORS.Text or COLORS.SubText
         UI.settingsTabBtn.BackgroundColor3 = (not isPlay) and COLORS.Bg or COLORS.Header
         UI.settingsTabLine.BackgroundColor3 = theme.Primary
@@ -7963,46 +8306,24 @@ end
 
 function UI.applyTheme()
     local theme = getTheme()
-    if UI.accentGrad then
-        UI.accentGrad.Color = ColorSequence.new(theme.Primary, theme.Secondary)
-    end
-    if UI.themeDot then
-        UI.themeDot.BackgroundColor3 = theme.Primary
-    end
-    if UI.comboValue then
-        UI.comboValue.TextColor3 = theme.Primary
-    end
-    if UI.cubeLabel then
-        UI.cubeLabel.TextColor3 = theme.Primary
-    end
-    if UI.minimized and UI.mainStroke then
-        UI.mainStroke.Color = theme.Primary
-    end
-    if UI.speedRangeLabel then
-        UI.speedRangeLabel.TextColor3 = theme.Primary
-    end
-    if UI.refreshLengthHighlight then
-        UI.refreshLengthHighlight()
-    end
-    if UI.refreshSpeedHighlight then
-        UI.refreshSpeedHighlight()
-    end
-    if UI.refreshModeHighlight then
-        UI.refreshModeHighlight()
-    end
-    if STATE.isCalibrated and STATE.arrowMotionVerified and UI.calibrateBtn then
+    if UI.accentGrad then UI.accentGrad.Color = ColorSequence.new(theme.Primary, theme.Secondary) end
+    if UI.themeDot then UI.themeDot.BackgroundColor3 = theme.Primary end
+    if UI.comboValue then UI.comboValue.TextColor3 = theme.Primary end
+    if UI.cubeLabel then UI.cubeLabel.TextColor3 = theme.Primary end
+    if UI.minimized and UI.mainStroke then UI.mainStroke.Color = theme.Primary end
+    if UI.speedRangeLabel then UI.speedRangeLabel.TextColor3 = theme.Primary end
+    if UI.refreshLengthHighlight then UI.refreshLengthHighlight() end
+    if UI.refreshSpeedHighlight then UI.refreshSpeedHighlight() end
+    if UI.refreshModeHighlight then UI.refreshModeHighlight() end
+    if STATE.isCalibrated and (STATE.arrowVerified or STATE.typeboxVerified) and UI.calibrateBtn then
         UI.calibrateBtn.BackgroundColor3 = theme.Primary
     end
-    for _, refresh in ipairs(UI.themeToggles) do
-        refresh()
-    end
+    for _, refresh in ipairs(UI.themeToggles) do refresh() end
     UI.selectTab(STATE.activeTab)
 end
 
 function UI.setStatus(headline, detail, accentColor)
-    if headline == STATE.lastHeadline and detail == STATE.lastDetail then
-        return
-    end
+    if headline == STATE.lastHeadline and detail == STATE.lastDetail then return end
     STATE.lastHeadline, STATE.lastDetail = headline, detail
     UI.statusTitle.Text = headline
     UI.statusTitle.TextColor3 = accentColor
@@ -8010,19 +8331,13 @@ function UI.setStatus(headline, detail, accentColor)
     UI.statusDot.BackgroundColor3 = accentColor
     UI.statusStripe.BackgroundColor3 = accentColor
     UI.statusStroke.Color = accentColor
-    if UI.cubeStatusDot then
-        UI.cubeStatusDot.BackgroundColor3 = accentColor
-    end
+    if UI.cubeStatusDot then UI.cubeStatusDot.BackgroundColor3 = accentColor end
 end
 
 function UI.setDiag(text)
-    if text == STATE.diagText then
-        return
-    end
+    if text == STATE.diagText then return end
     STATE.diagText = text
-    if UI.diagLabel then
-        UI.diagLabel.Text = text
-    end
+    if UI.diagLabel then UI.diagLabel.Text = text end
 end
 
 function UI.setCombo(comboText, isLocked)
@@ -8037,7 +8352,6 @@ function UI.setCombo(comboText, isLocked)
 end
 
 function UI.setOtherWord(wordText)
-    -- If what we picked up is NOT an actual word, dont guess it, just provide "NOT IN DATABANK"
     local isKnown = wordText ~= nil and STATE.masterWordSet[wordText] == true
     if wordText and not isKnown then
         UI.otherWordValue.Text = "NOT IN DATABANK"
@@ -8049,7 +8363,7 @@ function UI.setOtherWord(wordText)
 end
 
 function UI.updateStats()
-    local badge = (STATE.isCalibrated and STATE.arrowMotionVerified) and STATE.turnSourceText
+    local badge = (STATE.isCalibrated and (STATE.arrowVerified or STATE.typeboxVerified)) and STATE.turnSourceText
         or (STATE.isCalibrated and "Sync..." or "Uncal")
     UI.statsLabel.Text = string.format(
         "Used: %d (You: %d, Opp: %d) • Bank: %d • %s",
@@ -8059,7 +8373,7 @@ end
 
 function UI.updateCalibration()
     local theme = getTheme()
-    if STATE.isCalibrated and STATE.arrowMotionVerified then
+    if STATE.isCalibrated and (STATE.arrowVerified or STATE.typeboxVerified) then
         UI.calibrateBtn.Text = "RECALIBRATE [F1]"
         TweenService:Create(UI.calibrateBtn, TweenInfo.new(0.2), { BackgroundColor3 = theme.Primary }):Play()
         UI.setAutoToggle(CONFIG.Enabled, "Calibrated — auto-typer armed")
@@ -8076,12 +8390,8 @@ function UI.updateCalibration()
 end
 
 function UI.dismissPopup()
-    if UI.popupBackdrop and UI.popupBackdrop.Parent then
-        UI.popupBackdrop:Destroy()
-    end
-    if UI.mainFrame then
-        UI.mainFrame.Visible = true
-    end
+    if UI.popupBackdrop and UI.popupBackdrop.Parent then UI.popupBackdrop:Destroy() end
+    if UI.mainFrame then UI.mainFrame.Visible = true end
 end
 
 function UI.unlockCombo(keepPrev)
@@ -8106,7 +8416,7 @@ function UI.toggleAutoTyper(desiredState)
     if CONFIG.Enabled then
         if not STATE.isCalibrated then
             UI.setStatus("NOT CALIBRATED", "Wait for arrow on you, then press F1", COLORS.Amber)
-        elseif not STATE.arrowMotionVerified then
+        elseif not (STATE.arrowVerified or STATE.typeboxVerified) then
             UI.setStatus("VERIFYING ARROW", "Waiting for turn to pass to lock arrow...", COLORS.Amber)
         else
             UI.setStatus("ACTIVE • WAITING", "Watching bomb arrow & turns...", COLORS.Green)
@@ -8116,36 +8426,60 @@ function UI.toggleAutoTyper(desiredState)
     end
 end
 
+-- Full round reset (F2)
 function UI.resetUsedWords()
+    Tracker.disconnectListeners()
+    Detector.clearCaches()
+    refreshPlayerCache()
+
     table.clear(STATE.usedWords)
-    STATE.usedCount = 0
-    STATE.mySentCount = 0
-    STATE.otherUsedCount = 0
-    STATE.pendingOtherWord = nil
-    STATE.pendingOtherConf = 0
-    STATE.finishedOtherWord = nil
-    STATE.finishedOtherCombo = nil
-    STATE.turnAttempts = 0
-    STATE.lastAttemptSignature = nil
-    STATE.lockedForPlayer = nil
+    STATE.usedCount, STATE.mySentCount, STATE.otherUsedCount = 0, 0, 0
+    STATE.isTyping = false
+    STATE.isCalibrated = false
+    STATE.arrowVerified = false
+    STATE.currentlyMyTurn = false
     STATE.wasMyTurn = false
+    STATE.turnSourceText = "Uncal"
+    STATE.activeTurnPlayerPos = nil
+    STATE.calMyPos, STATE.calArenaCenter = nil, nil
+    STATE.learnedArrowName, STATE.learnedArrowPath = nil, nil
+    STATE.learnedPivotMode = "self"
+    STATE.confirmedArrow, STATE.arrowHiddenSince = nil, nil
+    STATE.manualArrowOffset = nil
+    STATE.lastArrowSample, STATE.arrowStableSince = nil, 0
+    STATE.rawArrowRotSample, STATE.rawArrowStableSince = nil, 0
+    STATE.samePlayerTarget, STATE.samePlayerSince = nil, 0
+    STATE.lastAutoJoinClick = 0
+    table.clear(STATE.calSnapshots)
+    table.clear(STATE.reacquireHistory)
+
+    STATE.pendingOtherWord, STATE.pendingOtherConf = nil, 0
+    STATE.finishedOtherWord, STATE.finishedOtherCombo, STATE.finishedOtherAt = nil, nil, 0
+    STATE.turnAttempts, STATE.lastAttemptSignature = 0, nil
+    STATE.lockedForPlayer = nil
+    STATE.promptMissingSince = nil
+    STATE.pendingComboText, STATE.pendingComboSince = nil, nil
     UI.unlockCombo(false)
-    UI.updateStats()
+
     UI.setCombo("--", false)
     UI.setOtherWord(nil)
+    UI.setDiag("Not calibrated")
+    UI.updateCalibration()
 
-    UI.resetBtn.Text = "CLEARED!"
-    TweenService:Create(UI.resetBtn, TweenInfo.new(0.15), {
-        BackgroundColor3 = COLORS.Green,
-        TextColor3 = COLORS.DarkInk,
-    }):Play()
+    if not STATE.fileLoaded then
+        UI.setStatus("FILE ERROR", STATE.loadError or "Missing word_bomb.txt", COLORS.Red)
+    elseif CONFIG.Enabled then
+        UI.setStatus("NOT CALIBRATED", "Round reset! Press F1 on your turn", COLORS.Amber)
+    else
+        UI.setStatus("PAUSED", "Round reset — auto-typer is off", COLORS.Amber)
+    end
+
+    UI.resetBtn.Text = "RESET!"
+    TweenService:Create(UI.resetBtn, TweenInfo.new(0.15), { BackgroundColor3 = COLORS.Green, TextColor3 = COLORS.DarkInk }):Play()
     task.delay(0.8, function()
         if UI.resetBtn and UI.resetBtn.Parent then
             UI.resetBtn.Text = "RESET [F2]"
-            TweenService:Create(UI.resetBtn, TweenInfo.new(0.2), {
-                BackgroundColor3 = COLORS.ButtonBg,
-                TextColor3 = COLORS.Text,
-            }):Play()
+            TweenService:Create(UI.resetBtn, TweenInfo.new(0.2), { BackgroundColor3 = COLORS.ButtonBg, TextColor3 = COLORS.Text }):Play()
         end
     end)
 end
@@ -8157,12 +8491,8 @@ local function makeToggleRow(parent, order, labelText, subText, initialState, on
     }, parent)
     addBorder(row, COLORS.SubBorder, 1)
 
-    row.MouseEnter:Connect(function()
-        TweenService:Create(row, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.CardHover }):Play()
-    end)
-    row.MouseLeave:Connect(function()
-        TweenService:Create(row, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.Card }):Play()
-    end)
+    row.MouseEnter:Connect(function() TweenService:Create(row, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.CardHover }):Play() end)
+    row.MouseLeave:Connect(function() TweenService:Create(row, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.Card }):Play() end)
 
     create("TextLabel", {
         Size = UDim2.new(1, -84, 0, 22), Position = UDim2.new(0, 12, 0, 6),
@@ -8182,19 +8512,14 @@ local function makeToggleRow(parent, order, labelText, subText, initialState, on
         BackgroundColor3 = initialState and getTheme().Secondary or COLORS.ToggleOff,
         BorderSizePixel = 0, Font = Enum.Font.GothamBlack,
         Text = initialState and "ON" or "OFF",
-        TextColor3 = initialState and COLORS.DarkInk or COLORS.SubText,
-        TextSize = 13,
+        TextColor3 = initialState and COLORS.DarkInk or COLORS.SubText, TextSize = 13,
     }, row)
     addBorder(badge, COLORS.Border, 1)
 
     local state = initialState
     local function setVisual(newState, newSub)
-        if newState ~= nil then
-            state = newState
-        end
-        if newSub then
-            subLbl.Text = newSub
-        end
+        if newState ~= nil then state = newState end
+        if newSub then subLbl.Text = newSub end
         badge.Text = state and "ON" or "OFF"
         TweenService:Create(badge, TweenInfo.new(0.15), {
             BackgroundColor3 = state and getTheme().Secondary or COLORS.ToggleOff,
@@ -8202,21 +8527,15 @@ local function makeToggleRow(parent, order, labelText, subText, initialState, on
         }):Play()
     end
 
-    row.MouseButton1Click:Connect(function()
-        onToggle(not state)
-    end)
+    row.MouseButton1Click:Connect(function() onToggle(not state) end)
     table.insert(UI.themeToggles, function() setVisual(nil) end)
     return setVisual
 end
 
 function UI.showPopup(isStartup)
-    if UI.popupBackdrop and UI.popupBackdrop.Parent then
-        UI.popupBackdrop:Destroy()
-    end
+    if UI.popupBackdrop and UI.popupBackdrop.Parent then UI.popupBackdrop:Destroy() end
     local screenGui = UI.screenGui
-    if not screenGui then
-        return
-    end
+    if not screenGui then return end
 
     local backdrop = create("Frame", {
         Name = "StartupPopupBackdrop", Size = UDim2.new(1, 0, 1, 0),
@@ -8240,10 +8559,7 @@ function UI.showPopup(isStartup)
         Size = UDim2.new(1, 0, 0, 48), Position = UDim2.fromOffset(0, 3),
         BackgroundColor3 = COLORS.Header, BorderSizePixel = 0, ZIndex = 22,
     }, card)
-    create("Frame", {
-        Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1),
-        BackgroundColor3 = COLORS.Border, BorderSizePixel = 0, ZIndex = 23,
-    }, hdr)
+    create("Frame", { Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1), BackgroundColor3 = COLORS.Border, BorderSizePixel = 0, ZIndex = 23 }, hdr)
     create("TextLabel", {
         Size = UDim2.new(1, -56, 1, 0), Position = UDim2.fromOffset(16, 0),
         BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, Text = "WORD BOMB  //  QUICK START",
@@ -8264,13 +8580,11 @@ function UI.showPopup(isStartup)
             BackgroundColor3 = COLORS.Card, BorderSizePixel = 0, ZIndex = 22,
         }, card)
         addBorder(row, COLORS.SubBorder, 1)
-
         create("TextLabel", {
             Size = UDim2.fromOffset(58, 42), Position = UDim2.new(0, 12, 0.5, -21),
             BackgroundColor3 = badgeColor, BorderSizePixel = 0, Font = Enum.Font.GothamBlack,
             Text = badgeText, TextColor3 = COLORS.DarkInk, TextSize = 16, ZIndex = 23,
         }, row)
-
         create("TextLabel", {
             Size = UDim2.new(1, -88, 0, 22), Position = UDim2.fromOffset(82, 8),
             BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = title,
@@ -8284,21 +8598,9 @@ function UI.showPopup(isStartup)
         }, row)
     end
 
-    addStep(
-        62, 74, "F1", COLORS.Amber,
-        "Calibrate When Arrow Is On You",
-        "Wait until the bomb arrow stops on you, then press F1 once. It types your word and locks onto the arrow."
-    )
-    addStep(
-        144, 74, "F2", COLORS.Cyan,
-        "Reset Word Bank Every Round",
-        "After every round ends, press F2 to clear used words so the bank stays fresh."
-    )
-    addStep(
-        226, 92, "MODE", COLORS.Green,
-        "OS Keys vs. Direct Mode",
-        "OS Keys simulates real key presses (most reliable, keep Roblox focused). Direct writes straight into the box without OS keys."
-    )
+    addStep(62, 74, "F1", COLORS.Amber, "Calibrate When Arrow Is On You", "Wait until the bomb arrow stops on you, then press F1 once. It types your word and locks onto your turn.")
+    addStep(144, 74, "F2", COLORS.Cyan, "Reset Round & Word Bank", "After every round ends, press F2 to clear used words and reset tracking so you can cleanly press F1 next round.")
+    addStep(226, 92, "MODE", COLORS.Green, "OS Keys vs. Direct Mode", "OS Keys simulates real key presses (most reliable, keep Roblox focused). Direct writes straight into the box without OS keys.")
 
     local gotIt = create("TextButton", {
         Size = UDim2.new(1, -32, 0, 42), Position = UDim2.new(0, 16, 1, -54),
@@ -8316,105 +8618,51 @@ local function buildCubeOverlay(mainFrame)
         Text = "", AutoButtonColor = false, Visible = false, ZIndex = 10,
     }, mainFrame)
     UI.cubeOverlay = cubeBtn
+    UI.cubeStatusDot = create("Frame", { Size = UDim2.fromOffset(8, 8), Position = UDim2.new(1, -13, 0, 7), BackgroundColor3 = COLORS.Amber, BorderSizePixel = 0, ZIndex = 12 }, cubeBtn)
+    UI.cubeLabel = create("TextLabel", { Size = UDim2.new(1, -8, 0, 28), Position = UDim2.fromOffset(4, 13), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, Text = "WB", TextColor3 = COLORS.Cyan, TextSize = 22, ZIndex = 11 }, cubeBtn)
+    UI.cubeSubLabel = create("TextLabel", { Size = UDim2.new(1, -8, 0, 14), Position = UDim2.fromOffset(4, 43), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "OPEN", TextColor3 = COLORS.SubText, TextSize = 10, ZIndex = 11 }, cubeBtn)
 
-    UI.cubeStatusDot = create("Frame", {
-        Size = UDim2.fromOffset(8, 8), Position = UDim2.new(1, -13, 0, 7),
-        BackgroundColor3 = COLORS.Amber, BorderSizePixel = 0, ZIndex = 12,
-    }, cubeBtn)
-
-    UI.cubeLabel = create("TextLabel", {
-        Size = UDim2.new(1, -8, 0, 28), Position = UDim2.fromOffset(4, 13),
-        BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, Text = "WB",
-        TextColor3 = COLORS.Cyan, TextSize = 22, ZIndex = 11,
-    }, cubeBtn)
-
-    UI.cubeSubLabel = create("TextLabel", {
-        Size = UDim2.new(1, -8, 0, 14), Position = UDim2.fromOffset(4, 43),
-        BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "OPEN",
-        TextColor3 = COLORS.SubText, TextSize = 10, ZIndex = 11,
-    }, cubeBtn)
-
-    cubeBtn.MouseEnter:Connect(function()
-        TweenService:Create(cubeBtn, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.CardHover }):Play()
-    end)
-    cubeBtn.MouseLeave:Connect(function()
-        TweenService:Create(cubeBtn, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.Header }):Play()
-    end)
+    cubeBtn.MouseEnter:Connect(function() TweenService:Create(cubeBtn, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.CardHover }):Play() end)
+    cubeBtn.MouseLeave:Connect(function() TweenService:Create(cubeBtn, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.Header }):Play() end)
 
     local moved, dragStart, startX, startY = false, nil, 0, 0
     cubeBtn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            UI.dragActive = true
-            moved = false
-            dragStart = input.Position
-            startX = mainFrame.Position.X.Offset
-            startY = mainFrame.Position.Y.Offset
-            UI.curX, UI.curY = startX, startY
-            UI.dragTargetX, UI.dragTargetY = startX, startY
+            UI.dragActive, moved, dragStart = true, false, input.Position
+            startX, startY = mainFrame.Position.X.Offset, mainFrame.Position.Y.Offset
+            UI.curX, UI.curY, UI.dragTargetX, UI.dragTargetY = startX, startY, startX, startY
         end
     end)
     table.insert(STATE.connections, UserInputService.InputChanged:Connect(function(input)
         if UI.dragActive and UI.minimized and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
-            if delta.Magnitude >= 6 then
-                moved = true
-            end
+            if delta.Magnitude >= 6 then moved = true end
             if moved then
-                UI.dragTargetX = startX + delta.X
-                UI.dragTargetY = startY + delta.Y
-                UI.smoothLerpActive = true
+                UI.dragTargetX, UI.dragTargetY, UI.smoothLerpActive = startX + delta.X, startY + delta.Y, true
             end
         end
     end))
     table.insert(STATE.connections, UserInputService.InputEnded:Connect(function(input)
         if UI.dragActive and UI.minimized and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
             UI.dragActive = false
-            if not moved then
-                UI.setMinimized(false)
-            end
+            if not moved then UI.setMinimized(false) end
         end
     end))
 end
 
 local function buildHeaderAndTabs(mainFrame)
-    local accentBar = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 3), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 15,
-    }, mainFrame)
-    UI.accentGrad = create("UIGradient", {
-        Color = ColorSequence.new(COLORS.Cyan, COLORS.Green),
-    }, accentBar)
+    local accentBar = create("Frame", { Size = UDim2.new(1, 0, 0, 3), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 15 }, mainFrame)
+    UI.accentGrad = create("UIGradient", { Color = ColorSequence.new(COLORS.Cyan, COLORS.Green) }, accentBar)
 
-    local header = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 44), Position = UDim2.fromOffset(0, 3),
-        BackgroundColor3 = COLORS.Header, BorderSizePixel = 0,
-    }, mainFrame)
+    local header = create("Frame", { Size = UDim2.new(1, 0, 0, 44), Position = UDim2.fromOffset(0, 3), BackgroundColor3 = COLORS.Header, BorderSizePixel = 0 }, mainFrame)
     UI.header = header
+    create("Frame", { Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1), BackgroundColor3 = COLORS.Border, BorderSizePixel = 0 }, header)
+    UI.statusDot = create("Frame", { Size = UDim2.fromOffset(10, 10), Position = UDim2.new(0, 14, 0.5, -5), BackgroundColor3 = COLORS.Amber, BorderSizePixel = 0 }, header)
+    create("TextLabel", { Size = UDim2.new(0, 134, 1, 0), Position = UDim2.fromOffset(32, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, Text = "WORD BOMB", TextColor3 = COLORS.Text, TextSize = 18, TextXAlignment = Enum.TextXAlignment.Left }, header)
 
-    create("Frame", {
-        Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1),
-        BackgroundColor3 = COLORS.Border, BorderSizePixel = 0,
-    }, header)
-
-    UI.statusDot = create("Frame", {
-        Size = UDim2.fromOffset(10, 10), Position = UDim2.new(0, 14, 0.5, -5),
-        BackgroundColor3 = COLORS.Amber, BorderSizePixel = 0,
-    }, header)
-
-    create("TextLabel", {
-        Size = UDim2.new(0, 134, 1, 0), Position = UDim2.fromOffset(32, 0),
-        BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, Text = "WORD BOMB",
-        TextColor3 = COLORS.Text, TextSize = 18, TextXAlignment = Enum.TextXAlignment.Left,
-    }, header)
-
-    local themeBtn = create("TextButton", {
-        Size = UDim2.fromOffset(28, 28), Position = UDim2.new(1, -104, 0.5, -14),
-        BackgroundColor3 = COLORS.ButtonBg, BorderSizePixel = 0, Text = "", AutoButtonColor = false,
-    }, header)
+    local themeBtn = create("TextButton", { Size = UDim2.fromOffset(28, 28), Position = UDim2.new(1, -104, 0.5, -14), BackgroundColor3 = COLORS.ButtonBg, BorderSizePixel = 0, Text = "", AutoButtonColor = false }, header)
     addBorder(themeBtn, COLORS.Border, 1)
-    UI.themeDot = create("Frame", {
-        Size = UDim2.fromOffset(12, 12), Position = UDim2.new(0.5, -6, 0.5, -6),
-        BackgroundColor3 = COLORS.Cyan, BorderSizePixel = 0,
-    }, themeBtn)
+    UI.themeDot = create("Frame", { Size = UDim2.fromOffset(12, 12), Position = UDim2.new(0.5, -6, 0.5, -6), BackgroundColor3 = COLORS.Cyan, BorderSizePixel = 0 }, themeBtn)
     themeBtn.MouseButton1Click:Connect(function()
         STATE.themeIndex = (STATE.themeIndex % #THEMES) + 1
         UI.applyTheme()
@@ -8427,31 +8675,20 @@ local function buildHeaderAndTabs(mainFrame)
             Text = text, TextColor3 = COLORS.SubText, TextSize = 15, AutoButtonColor = false,
         }, header)
         addBorder(btn, COLORS.Border, 1)
-        btn.MouseEnter:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundColor3 = hoverColor, TextColor3 = COLORS.Text }):Play()
-        end)
-        btn.MouseLeave:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.ButtonBg, TextColor3 = COLORS.SubText }):Play()
-        end)
+        btn.MouseEnter:Connect(function() TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundColor3 = hoverColor, TextColor3 = COLORS.Text }):Play() end)
+        btn.MouseLeave:Connect(function() TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.ButtonBg, TextColor3 = COLORS.SubText }):Play() end)
         return btn
     end
 
     local minBtn = makeHeaderBtn("-", -70, COLORS.Border)
     local closeBtn = makeHeaderBtn("X", -36, COLORS.Red)
-
     UI.minimized = false
-    minBtn.MouseButton1Click:Connect(function()
-        UI.setMinimized(true)
-    end)
-
+    minBtn.MouseButton1Click:Connect(function() UI.setMinimized(true) end)
     closeBtn.MouseButton1Click:Connect(function()
-        STATE.running = false
-        CONFIG.Enabled = false
+        STATE.running, CONFIG.Enabled, CONFIG.AutoJoin = false, false, false
         Tracker.disconnectListeners()
         for _, conn in ipairs(STATE.connections) do
-            if conn.Connected then
-                conn:Disconnect()
-            end
+            if conn.Connected then conn:Disconnect() end
         end
         UI.screenGui:Destroy()
     end)
@@ -8459,20 +8696,15 @@ local function buildHeaderAndTabs(mainFrame)
     local dragStart, startX, startY = nil, 0, 0
     header.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            UI.dragActive = true
-            dragStart = input.Position
-            startX = mainFrame.Position.X.Offset
-            startY = mainFrame.Position.Y.Offset
-            UI.curX, UI.curY = startX, startY
-            UI.dragTargetX, UI.dragTargetY = startX, startY
+            UI.dragActive, dragStart = true, input.Position
+            startX, startY = mainFrame.Position.X.Offset, mainFrame.Position.Y.Offset
+            UI.curX, UI.curY, UI.dragTargetX, UI.dragTargetY = startX, startY, startX, startY
         end
     end)
     table.insert(STATE.connections, UserInputService.InputChanged:Connect(function(input)
         if UI.dragActive and not UI.minimized and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local d = input.Position - dragStart
-            UI.dragTargetX = startX + d.X
-            UI.dragTargetY = startY + d.Y
-            UI.smoothLerpActive = true
+            UI.dragTargetX, UI.dragTargetY, UI.smoothLerpActive = startX + d.X, startY + d.Y, true
         end
     end))
     table.insert(STATE.connections, UserInputService.InputEnded:Connect(function(input)
@@ -8481,15 +8713,9 @@ local function buildHeaderAndTabs(mainFrame)
         end
     end))
 
-    local tabBar = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 34), Position = UDim2.fromOffset(0, 47),
-        BackgroundColor3 = COLORS.Header, BorderSizePixel = 0,
-    }, mainFrame)
+    local tabBar = create("Frame", { Size = UDim2.new(1, 0, 0, 34), Position = UDim2.fromOffset(0, 47), BackgroundColor3 = COLORS.Header, BorderSizePixel = 0 }, mainFrame)
     UI.tabBar = tabBar
-    create("Frame", {
-        Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1),
-        BackgroundColor3 = COLORS.Border, BorderSizePixel = 0,
-    }, tabBar)
+    create("Frame", { Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1), BackgroundColor3 = COLORS.Border, BorderSizePixel = 0 }, tabBar)
 
     local function makeTab(label, xScale, tabKey)
         local btn = create("TextButton", {
@@ -8497,13 +8723,8 @@ local function buildHeaderAndTabs(mainFrame)
             BackgroundColor3 = COLORS.Header, BorderSizePixel = 0, Font = Enum.Font.GothamBlack,
             Text = label, TextColor3 = COLORS.SubText, TextSize = 13, AutoButtonColor = false,
         }, tabBar)
-        local line = create("Frame", {
-            Size = UDim2.new(1, 0, 0, 2), Position = UDim2.new(0, 0, 1, -2),
-            BackgroundColor3 = COLORS.Cyan, BorderSizePixel = 0, Visible = false,
-        }, btn)
-        btn.MouseButton1Click:Connect(function()
-            UI.selectTab(tabKey)
-        end)
+        local line = create("Frame", { Size = UDim2.new(1, 0, 0, 2), Position = UDim2.new(0, 0, 1, -2), BackgroundColor3 = COLORS.Cyan, BorderSizePixel = 0, Visible = false }, btn)
+        btn.MouseButton1Click:Connect(function() UI.selectTab(tabKey) end)
         return btn, line
     end
 
@@ -8512,88 +8733,61 @@ local function buildHeaderAndTabs(mainFrame)
 end
 
 local function buildPlayTab(parent)
-    local page = create("Frame", {
-        Name = "PlayPage", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
-    }, parent)
+    local page = create("Frame", { Name = "PlayPage", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1 }, parent)
     create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, page)
     UI.playPage = page
 
     local row = create("Frame", { Size = UDim2.new(1, 0, 0, 64), BackgroundTransparency = 1, LayoutOrder = 1 }, page)
 
-    local comboBox = create("Frame", {
-        Size = UDim2.new(0, 122, 1, 0), BackgroundColor3 = COLORS.Card, BorderSizePixel = 0,
-    }, row)
+    local comboBox = create("Frame", { Size = UDim2.new(0, 122, 1, 0), BackgroundColor3 = COLORS.Card, BorderSizePixel = 0 }, row)
     addBorder(comboBox, COLORS.SubBorder, 1)
-    UI.comboTag = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 16), Position = UDim2.fromOffset(0, 6), BackgroundTransparency = 1,
-        Font = Enum.Font.GothamBold, Text = "COMBO", TextColor3 = COLORS.SubText, TextSize = 11,
-    }, comboBox)
-    UI.comboValue = create("TextLabel", {
-        Size = UDim2.new(1, -8, 0, 36), Position = UDim2.fromOffset(4, 22), BackgroundTransparency = 1,
-        Font = Enum.Font.GothamBlack, Text = "--", TextColor3 = COLORS.Cyan, TextSize = 28,
-    }, comboBox)
+    UI.comboTag = create("TextLabel", { Size = UDim2.new(1, 0, 0, 16), Position = UDim2.fromOffset(0, 6), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "COMBO", TextColor3 = COLORS.SubText, TextSize = 11 }, comboBox)
+    UI.comboValue = create("TextLabel", { Size = UDim2.new(1, -8, 0, 36), Position = UDim2.fromOffset(4, 22), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, Text = "--", TextColor3 = COLORS.Cyan, TextSize = 28 }, comboBox)
 
-    local otherBox = create("Frame", {
-        Size = UDim2.new(1, -130, 1, 0), Position = UDim2.fromOffset(130, 0),
-        BackgroundColor3 = COLORS.Card, BorderSizePixel = 0,
-    }, row)
+    local otherBox = create("Frame", { Size = UDim2.new(1, -130, 1, 0), Position = UDim2.fromOffset(130, 0), BackgroundColor3 = COLORS.Card, BorderSizePixel = 0 }, row)
     addBorder(otherBox, COLORS.SubBorder, 1)
-    create("TextLabel", {
-        Size = UDim2.new(1, -20, 0, 16), Position = UDim2.fromOffset(12, 6), BackgroundTransparency = 1,
-        Font = Enum.Font.GothamBold, Text = "OTHER'S LAST WORD", TextColor3 = COLORS.SubText,
-        TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left,
-    }, otherBox)
-    UI.otherWordValue = create("TextLabel", {
-        Size = UDim2.new(1, -20, 0, 32), Position = UDim2.fromOffset(12, 24), BackgroundTransparency = 1,
-        Font = Enum.Font.GothamBold, Text = "--", TextColor3 = COLORS.SubText,
-        TextSize = 18, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-    }, otherBox)
+    create("TextLabel", { Size = UDim2.new(1, -20, 0, 16), Position = UDim2.fromOffset(12, 6), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "OTHER'S LAST WORD", TextColor3 = COLORS.SubText, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left }, otherBox)
+    UI.otherWordValue = create("TextLabel", { Size = UDim2.new(1, -20, 0, 32), Position = UDim2.fromOffset(12, 24), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "--", TextColor3 = COLORS.SubText, TextSize = 18, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd }, otherBox)
 
     UI.setAutoToggle = makeToggleRow(page, 2, "Auto-Typer", "Press F1 on your turn to start", CONFIG.Enabled, function(v)
         UI.toggleAutoTyper(v)
     end)
 
-    do
-        local sec = create("Frame", { Size = UDim2.new(1, 0, 0, 58), BackgroundTransparency = 1, LayoutOrder = 3 }, page)
-        create("TextLabel", {
-            Size = UDim2.new(0.55, 0, 0, 19), BackgroundTransparency = 1, Font = Enum.Font.GothamBold,
-            Text = "Word Length", TextColor3 = COLORS.Text, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
-        }, sec)
-        local lenSub = create("TextLabel", {
-            Size = UDim2.new(0.45, 0, 0, 19), Position = UDim2.new(0.55, 0, 0, 0), BackgroundTransparency = 1,
-            Font = Enum.Font.GothamMedium, Text = "Longest first", TextColor3 = COLORS.SubText, TextSize = 12,
-            TextXAlignment = Enum.TextXAlignment.Right,
-        }, sec)
+    local setAutoJoinToggle
+    setAutoJoinToggle = makeToggleRow(page, 3, "Auto-Join Round", "Clicks 'Click to join' in lobby", CONFIG.AutoJoin, function(v)
+        CONFIG.AutoJoin = v
+        STATE.lastAutoJoinClick = 0
+        setAutoJoinToggle(v, v and "Watching for 'Click to join'..." or "Clicks 'Click to join' in lobby")
+    end)
+    UI.setAutoJoinToggle = setAutoJoinToggle
 
-        local holder = create("Frame", {
-            Size = UDim2.new(1, 0, 0, 36), Position = UDim2.fromOffset(0, 22),
-            BackgroundColor3 = COLORS.Card, BorderSizePixel = 0,
-        }, sec)
+    do
+        local sec = create("Frame", { Size = UDim2.new(1, 0, 0, 58), BackgroundTransparency = 1, LayoutOrder = 4 }, page)
+        create("TextLabel", { Size = UDim2.new(0.45, 0, 0, 19), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "Word Length", TextColor3 = COLORS.Text, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left }, sec)
+        local lenSub = create("TextLabel", { Size = UDim2.new(0.55, 0, 0, 19), Position = UDim2.new(0.45, 0, 0, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, Text = "Longest first", TextColor3 = COLORS.SubText, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Right }, sec)
+        local holder = create("Frame", { Size = UDim2.new(1, 0, 0, 36), Position = UDim2.fromOffset(0, 22), BackgroundColor3 = COLORS.Card, BorderSizePixel = 0 }, sec)
         addBorder(holder, COLORS.SubBorder, 1)
 
         local btns = {}
         local function refreshHighlight()
             local theme = getTheme()
             for i, m in ipairs(LENGTH_MODES) do
-                local sel = (m.PreferLonger == CONFIG.PreferLonger)
-                TweenService:Create(btns[i], TweenInfo.new(0.14), {
-                    BackgroundColor3 = sel and theme.Secondary or COLORS.Card,
-                    TextColor3 = sel and COLORS.DarkInk or COLORS.SubText,
-                }):Play()
+                local sel = (m.Id == CONFIG.LengthMode)
+                if sel then lenSub.Text = m.Sub end
+                TweenService:Create(btns[i], TweenInfo.new(0.14), { BackgroundColor3 = sel and theme.Secondary or COLORS.Card, TextColor3 = sel and COLORS.DarkInk or COLORS.SubText }):Play()
             end
         end
         UI.refreshLengthHighlight = refreshHighlight
 
         for i, m in ipairs(LENGTH_MODES) do
             local btn = create("TextButton", {
-                Size = UDim2.new(0.5, -4, 1, -4), Position = UDim2.new((i - 1) * 0.5, 2, 0, 2),
+                Size = UDim2.new(1 / #LENGTH_MODES, -4, 1, -4), Position = UDim2.new((i - 1) / #LENGTH_MODES, 2, 0, 2),
                 BackgroundColor3 = COLORS.Card, BorderSizePixel = 0, Font = Enum.Font.GothamBold,
                 Text = m.Name, TextColor3 = COLORS.SubText, TextSize = 14, AutoButtonColor = false,
             }, holder)
             btn.MouseButton1Click:Connect(function()
-                CONFIG.PreferLonger = m.PreferLonger
+                CONFIG.LengthMode = m.Id
                 Bank.sort()
-                lenSub.Text = CONFIG.PreferLonger and "Longest first" or "Shortest first"
                 refreshHighlight()
             end)
             btns[i] = btn
@@ -8602,21 +8796,10 @@ local function buildPlayTab(parent)
     end
 
     do
-        local sec = create("Frame", { Size = UDim2.new(1, 0, 0, 58), BackgroundTransparency = 1, LayoutOrder = 4 }, page)
-        create("TextLabel", {
-            Size = UDim2.new(0.5, 0, 0, 19), BackgroundTransparency = 1, Font = Enum.Font.GothamBold,
-            Text = "Typing Speed", TextColor3 = COLORS.Text, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
-        }, sec)
-        UI.speedRangeLabel = create("TextLabel", {
-            Size = UDim2.new(0.5, 0, 0, 19), Position = UDim2.new(0.5, 0, 0, 0), BackgroundTransparency = 1,
-            Font = Enum.Font.GothamBold, Text = "40-90ms", TextColor3 = getTheme().Primary, TextSize = 13,
-            TextXAlignment = Enum.TextXAlignment.Right,
-        }, sec)
-
-        local holder = create("Frame", {
-            Size = UDim2.new(1, 0, 0, 36), Position = UDim2.fromOffset(0, 22),
-            BackgroundColor3 = COLORS.Card, BorderSizePixel = 0,
-        }, sec)
+        local sec = create("Frame", { Size = UDim2.new(1, 0, 0, 58), BackgroundTransparency = 1, LayoutOrder = 5 }, page)
+        create("TextLabel", { Size = UDim2.new(0.5, 0, 0, 19), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "Typing Speed", TextColor3 = COLORS.Text, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left }, sec)
+        UI.speedRangeLabel = create("TextLabel", { Size = UDim2.new(0.5, 0, 0, 19), Position = UDim2.new(0.5, 0, 0, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "40-90ms", TextColor3 = getTheme().Primary, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Right }, sec)
+        local holder = create("Frame", { Size = UDim2.new(1, 0, 0, 36), Position = UDim2.fromOffset(0, 22), BackgroundColor3 = COLORS.Card, BorderSizePixel = 0 }, sec)
         addBorder(holder, COLORS.SubBorder, 1)
 
         local btns, selectedIdx = {}, 2
@@ -8624,10 +8807,7 @@ local function buildPlayTab(parent)
             local theme = getTheme()
             for i, btn in ipairs(btns) do
                 local sel = (i == selectedIdx)
-                TweenService:Create(btn, TweenInfo.new(0.14), {
-                    BackgroundColor3 = sel and theme.Secondary or COLORS.Card,
-                    TextColor3 = sel and COLORS.DarkInk or COLORS.SubText,
-                }):Play()
+                TweenService:Create(btn, TweenInfo.new(0.14), { BackgroundColor3 = sel and theme.Secondary or COLORS.Card, TextColor3 = sel and COLORS.DarkInk or COLORS.SubText }):Play()
             end
         end
         UI.refreshSpeedHighlight = refreshHighlight
@@ -8636,7 +8816,7 @@ local function buildPlayTab(parent)
             selectedIdx = idx
             local p = SPEED_PRESETS[idx]
             CONFIG.MinKeyDelay, CONFIG.MaxKeyDelay = p.Min, p.Max
-            UI.speedRangeLabel.Text = string.format("%d-%dms", math.floor(p.Min * 1000), math.floor(p.Max * 1000))
+            UI.speedRangeLabel.Text = string.format("%d-%dms", math.floor(p.Min * 1000 + 0.5), math.floor(p.Max * 1000 + 0.5))
             refreshHighlight()
         end
 
@@ -8644,7 +8824,7 @@ local function buildPlayTab(parent)
             local btn = create("TextButton", {
                 Size = UDim2.new(1 / #SPEED_PRESETS, -4, 1, -4), Position = UDim2.new((i - 1) / #SPEED_PRESETS, 2, 0, 2),
                 BackgroundColor3 = COLORS.Card, BorderSizePixel = 0, Font = Enum.Font.GothamBold,
-                Text = p.Name, TextColor3 = COLORS.SubText, TextSize = 14, AutoButtonColor = false,
+                Text = p.Name, TextColor3 = COLORS.SubText, TextSize = 13, AutoButtonColor = false,
             }, holder)
             btn.MouseButton1Click:Connect(function() selectSpeed(i) end)
             btns[i] = btn
@@ -8652,7 +8832,7 @@ local function buildPlayTab(parent)
         selectSpeed(2)
     end
 
-    local actionRow = create("Frame", { Size = UDim2.new(1, 0, 0, 42), BackgroundTransparency = 1, LayoutOrder = 5 }, page)
+    local actionRow = create("Frame", { Size = UDim2.new(1, 0, 0, 42), BackgroundTransparency = 1, LayoutOrder = 6 }, page)
     UI.calibrateBtn = create("TextButton", {
         Size = UDim2.new(0.58, -4, 1, 0), BackgroundColor3 = COLORS.Amber, BorderSizePixel = 0,
         Font = Enum.Font.GothamBlack, Text = "CALIBRATE [F1]", TextColor3 = COLORS.DarkInk,
@@ -8670,57 +8850,31 @@ local function buildPlayTab(parent)
 end
 
 local function buildSettingsTab(parent)
-    local page = create("Frame", {
-        Name = "SettingsPage", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Visible = false,
-    }, parent)
+    local page = create("Frame", { Name = "SettingsPage", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Visible = false }, parent)
     create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, page)
     UI.settingsPage = page
 
     do
         local sec = create("Frame", { Size = UDim2.new(1, 0, 0, 92), BackgroundTransparency = 1, LayoutOrder = 1 }, page)
-        create("TextLabel", {
-            Size = UDim2.new(0.55, 0, 0, 19), BackgroundTransparency = 1, Font = Enum.Font.GothamBold,
-            Text = "Input Method", TextColor3 = COLORS.Text, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
-        }, sec)
-        create("TextLabel", {
-            Size = UDim2.new(0.45, 0, 0, 19), Position = UDim2.new(0.55, 0, 0, 0), BackgroundTransparency = 1,
-            Font = Enum.Font.GothamBold, Text = HAS_KEYPRESS and "OS Ready" or "Direct Only",
-            TextColor3 = HAS_KEYPRESS and COLORS.Green or COLORS.Amber, TextSize = 12,
-            TextXAlignment = Enum.TextXAlignment.Right,
-        }, sec)
-
-        local holder = create("Frame", {
-            Size = UDim2.new(1, 0, 0, 36), Position = UDim2.fromOffset(0, 21),
-            BackgroundColor3 = COLORS.Card, BorderSizePixel = 0,
-        }, sec)
+        create("TextLabel", { Size = UDim2.new(0.55, 0, 0, 19), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "Input Method", TextColor3 = COLORS.Text, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left }, sec)
+        create("TextLabel", { Size = UDim2.new(0.45, 0, 0, 19), Position = UDim2.new(0.55, 0, 0, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = HAS_KEYPRESS and "OS Ready" or "Direct Only", TextColor3 = HAS_KEYPRESS and COLORS.Green or COLORS.Amber, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Right }, sec)
+        local holder = create("Frame", { Size = UDim2.new(1, 0, 0, 36), Position = UDim2.fromOffset(0, 21), BackgroundColor3 = COLORS.Card, BorderSizePixel = 0 }, sec)
         addBorder(holder, COLORS.SubBorder, 1)
-
-        local descLbl = create("TextLabel", {
-            Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 60), BackgroundTransparency = 1,
-            Font = Enum.Font.GothamMedium, Text = "", TextColor3 = COLORS.SubText, TextSize = 12,
-            TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top,
-        }, sec)
+        local descLbl = create("TextLabel", { Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 60), BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, Text = "", TextColor3 = COLORS.SubText, TextSize = 12, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top }, sec)
 
         local btns = {}
         local function refreshHighlight()
             local theme = getTheme()
             for i, m in ipairs(INPUT_MODES) do
                 local sel = (m.Id == CONFIG.InputMode)
-                if sel then
-                    descLbl.Text = m.Desc
-                end
-                TweenService:Create(btns[i], TweenInfo.new(0.14), {
-                    BackgroundColor3 = sel and theme.Secondary or COLORS.Card,
-                    TextColor3 = sel and COLORS.DarkInk or COLORS.SubText,
-                }):Play()
+                if sel then descLbl.Text = m.Desc end
+                TweenService:Create(btns[i], TweenInfo.new(0.14), { BackgroundColor3 = sel and theme.Secondary or COLORS.Card, TextColor3 = sel and COLORS.DarkInk or COLORS.SubText }):Play()
             end
         end
         UI.refreshModeHighlight = refreshHighlight
 
         local function selectMode(modeId)
-            if modeId == "OS" and not HAS_KEYPRESS then
-                modeId = "Direct"
-            end
+            if modeId == "OS" and not HAS_KEYPRESS then modeId = "Direct" end
             CONFIG.InputMode = modeId
             refreshHighlight()
         end
@@ -8738,40 +8892,21 @@ local function buildSettingsTab(parent)
     end
 
     local setTyposToggle
-    setTyposToggle = makeToggleRow(
-        page, 2, "Realistic Typos", "Occasionally mistypes a nearby key & fixes it",
-        CONFIG.HumanTypos,
-        function(v)
-            CONFIG.HumanTypos = v
-            setTyposToggle(v)
-        end
-    )
+    setTyposToggle = makeToggleRow(page, 2, "Realistic Typos", "Occasionally mistypes a nearby key & fixes it", CONFIG.HumanTypos, function(v)
+        CONFIG.HumanTypos = v
+        setTyposToggle(v)
+    end)
 
     local setThinkToggle
-    setThinkToggle = makeToggleRow(
-        page, 3, "Think Pause", "Adds a 0.35s-1.0s reaction pause on your turn",
-        CONFIG.ThinkDelay,
-        function(v)
-            CONFIG.ThinkDelay = v
-            setThinkToggle(v)
-        end
-    )
+    setThinkToggle = makeToggleRow(page, 3, "Think Pause", "Adds a 0.35s-1.0s reaction pause on your turn", CONFIG.ThinkDelay, function(v)
+        CONFIG.ThinkDelay = v
+        setThinkToggle(v)
+    end)
 
-    -- Live Turn Tracking Diagnostics Box
-    local diagBox = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 44), BackgroundColor3 = COLORS.Card, BorderSizePixel = 0, LayoutOrder = 4,
-    }, page)
+    local diagBox = create("Frame", { Size = UDim2.new(1, 0, 0, 44), BackgroundColor3 = COLORS.Card, BorderSizePixel = 0, LayoutOrder = 4 }, page)
     addBorder(diagBox, COLORS.SubBorder, 1)
-    create("TextLabel", {
-        Size = UDim2.new(1, -16, 0, 14), Position = UDim2.fromOffset(10, 4), BackgroundTransparency = 1,
-        Font = Enum.Font.GothamBold, Text = "TRACKER DIAGNOSTICS", TextColor3 = COLORS.SubText,
-        TextSize = 10, TextXAlignment = Enum.TextXAlignment.Left,
-    }, diagBox)
-    UI.diagLabel = create("TextLabel", {
-        Size = UDim2.new(1, -16, 0, 18), Position = UDim2.fromOffset(10, 20), BackgroundTransparency = 1,
-        Font = Enum.Font.GothamMedium, Text = "Not calibrated", TextColor3 = COLORS.Cyan,
-        TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-    }, diagBox)
+    create("TextLabel", { Size = UDim2.new(1, -16, 0, 14), Position = UDim2.fromOffset(10, 4), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "TRACKER DIAGNOSTICS", TextColor3 = COLORS.SubText, TextSize = 10, TextXAlignment = Enum.TextXAlignment.Left }, diagBox)
+    UI.diagLabel = create("TextLabel", { Size = UDim2.new(1, -16, 0, 18), Position = UDim2.fromOffset(10, 20), BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, Text = "Not calibrated", TextColor3 = COLORS.Cyan, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd }, diagBox)
 
     local guideBtn = create("TextButton", {
         Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = COLORS.ButtonBg, BorderSizePixel = 0,
@@ -8779,38 +8914,25 @@ local function buildSettingsTab(parent)
         TextSize = 13, AutoButtonColor = false, LayoutOrder = 5,
     }, page)
     addBorder(guideBtn, COLORS.Border, 1)
-    guideBtn.MouseEnter:Connect(function()
-        TweenService:Create(guideBtn, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.CardHover }):Play()
-    end)
-    guideBtn.MouseLeave:Connect(function()
-        TweenService:Create(guideBtn, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.ButtonBg }):Play()
-    end)
-    guideBtn.MouseButton1Click:Connect(function()
-        UI.showPopup(false)
-    end)
+    guideBtn.MouseEnter:Connect(function() TweenService:Create(guideBtn, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.CardHover }):Play() end)
+    guideBtn.MouseLeave:Connect(function() TweenService:Create(guideBtn, TweenInfo.new(0.12), { BackgroundColor3 = COLORS.ButtonBg }):Play() end)
+    guideBtn.MouseButton1Click:Connect(function() UI.showPopup(false) end)
 end
 
 function UI.build()
     local old = PlayerGui:FindFirstChild(UI_NAME)
-    if old then
-        old:Destroy()
-    end
+    if old then old:Destroy() end
 
-    local screenGui = create("ScreenGui", {
-        Name = UI_NAME, ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-    }, PlayerGui)
+    local screenGui = create("ScreenGui", { Name = UI_NAME, ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling }, PlayerGui)
     UI.screenGui = screenGui
 
     local cam = workspace.CurrentCamera
     local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
-    local initX = 24
-    local initY = math.max(24, math.floor((vp.Y - EXPANDED_H) * 0.5))
-    UI.curX, UI.curY = initX, initY
-    UI.dragTargetX, UI.dragTargetY = initX, initY
+    local initX, initY = 24, math.max(24, math.floor((vp.Y - EXPANDED_H) * 0.5))
+    UI.curX, UI.curY, UI.dragTargetX, UI.dragTargetY = initX, initY, initX, initY
 
     local mainFrame = create("Frame", {
-        Name = "MainFrame", Size = UDim2.fromOffset(EXPANDED_W, EXPANDED_H),
-        Position = UDim2.fromOffset(initX, initY),
+        Name = "MainFrame", Size = UDim2.fromOffset(EXPANDED_W, EXPANDED_H), Position = UDim2.fromOffset(initX, initY),
         BackgroundColor3 = COLORS.Bg, BorderSizePixel = 0, ClipsDescendants = true, Visible = false,
     }, screenGui)
     UI.mainStroke = addBorder(mainFrame, COLORS.Border, 1.4)
@@ -8819,51 +8941,23 @@ function UI.build()
     buildHeaderAndTabs(mainFrame)
     buildCubeOverlay(mainFrame)
 
-    local bodyFrame = create("Frame", {
-        Size = UDim2.new(1, -24, 1, -142), Position = UDim2.fromOffset(12, 91), BackgroundTransparency = 1,
-    }, mainFrame)
+    local bodyFrame = create("Frame", { Size = UDim2.new(1, -24, 1, -142), Position = UDim2.fromOffset(12, 91), BackgroundTransparency = 1 }, mainFrame)
     UI.bodyFrame = bodyFrame
 
-    local statusCard = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 54), BackgroundColor3 = COLORS.Card, BorderSizePixel = 0,
-    }, bodyFrame)
+    local statusCard = create("Frame", { Size = UDim2.new(1, 0, 0, 54), BackgroundColor3 = COLORS.Card, BorderSizePixel = 0 }, bodyFrame)
     UI.statusStroke = addBorder(statusCard, COLORS.Amber, 1.2)
-    UI.statusStripe = create("Frame", {
-        Size = UDim2.new(0, 4, 1, 0), BackgroundColor3 = COLORS.Amber, BorderSizePixel = 0,
-    }, statusCard)
+    UI.statusStripe = create("Frame", { Size = UDim2.new(0, 4, 1, 0), BackgroundColor3 = COLORS.Amber, BorderSizePixel = 0 }, statusCard)
+    UI.statusTitle = create("TextLabel", { Size = UDim2.new(1, -24, 0, 21), Position = UDim2.fromOffset(14, 6), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, Text = "NOT CALIBRATED", TextColor3 = COLORS.Amber, TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd }, statusCard)
+    UI.statusDetail = create("TextLabel", { Size = UDim2.new(1, -24, 0, 19), Position = UDim2.fromOffset(14, 28), BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, Text = "Wait for arrow on you, then press F1", TextColor3 = COLORS.SubText, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd }, statusCard)
 
-    UI.statusTitle = create("TextLabel", {
-        Size = UDim2.new(1, -24, 0, 21), Position = UDim2.fromOffset(14, 6), BackgroundTransparency = 1,
-        Font = Enum.Font.GothamBlack, Text = "NOT CALIBRATED", TextColor3 = COLORS.Amber,
-        TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-    }, statusCard)
-
-    UI.statusDetail = create("TextLabel", {
-        Size = UDim2.new(1, -24, 0, 19), Position = UDim2.fromOffset(14, 28), BackgroundTransparency = 1,
-        Font = Enum.Font.GothamMedium, Text = "Wait for arrow on you, then press F1", TextColor3 = COLORS.SubText,
-        TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-    }, statusCard)
-
-    local tabContent = create("Frame", {
-        Size = UDim2.new(1, 0, 1, -64), Position = UDim2.fromOffset(0, 64), BackgroundTransparency = 1,
-    }, bodyFrame)
-
+    local tabContent = create("Frame", { Size = UDim2.new(1, 0, 1, -64), Position = UDim2.fromOffset(0, 64), BackgroundTransparency = 1 }, bodyFrame)
     buildPlayTab(tabContent)
     buildSettingsTab(tabContent)
 
-    local footerFrame = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 42), Position = UDim2.new(0, 0, 1, -42),
-        BackgroundColor3 = COLORS.Header, BorderSizePixel = 0,
-    }, mainFrame)
+    local footerFrame = create("Frame", { Size = UDim2.new(1, 0, 0, 42), Position = UDim2.new(0, 0, 1, -42), BackgroundColor3 = COLORS.Header, BorderSizePixel = 0 }, mainFrame)
     UI.footerFrame = footerFrame
-    create("Frame", {
-        Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = COLORS.Border, BorderSizePixel = 0,
-    }, footerFrame)
-
-    UI.statsLabel = create("TextLabel", {
-        Size = UDim2.new(1, -16, 1, 0), Position = UDim2.fromOffset(8, 0), BackgroundTransparency = 1,
-        Font = Enum.Font.GothamBold, TextColor3 = COLORS.SubText, TextSize = 13, TextTruncate = Enum.TextTruncate.AtEnd,
-    }, footerFrame)
+    create("Frame", { Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = COLORS.Border, BorderSizePixel = 0 }, footerFrame)
+    UI.statsLabel = create("TextLabel", { Size = UDim2.new(1, -16, 1, 0), Position = UDim2.fromOffset(8, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextColor3 = COLORS.SubText, TextSize = 13, TextTruncate = Enum.TextTruncate.AtEnd }, footerFrame)
 
     startSmoothDragLoop()
     UI.showPopup(true)
@@ -8881,23 +8975,15 @@ function UI.build()
         while STATE.running and UI.statusDot and UI.statusDot.Parent do
             if STATE.isCalibrated and CONFIG.Enabled then
                 TweenService:Create(UI.statusDot, TweenInfo.new(0.75, Enum.EasingStyle.Sine), { BackgroundTransparency = 0.45 }):Play()
-                if UI.cubeStatusDot then
-                    TweenService:Create(UI.cubeStatusDot, TweenInfo.new(0.75, Enum.EasingStyle.Sine), { BackgroundTransparency = 0.45 }):Play()
-                end
+                if UI.cubeStatusDot then TweenService:Create(UI.cubeStatusDot, TweenInfo.new(0.75, Enum.EasingStyle.Sine), { BackgroundTransparency = 0.45 }):Play() end
                 task.wait(0.75)
-                if not STATE.running or not UI.statusDot or not UI.statusDot.Parent then
-                    break
-                end
+                if not STATE.running or not UI.statusDot or not UI.statusDot.Parent then break end
                 TweenService:Create(UI.statusDot, TweenInfo.new(0.75, Enum.EasingStyle.Sine), { BackgroundTransparency = 0 }):Play()
-                if UI.cubeStatusDot then
-                    TweenService:Create(UI.cubeStatusDot, TweenInfo.new(0.75, Enum.EasingStyle.Sine), { BackgroundTransparency = 0 }):Play()
-                end
+                if UI.cubeStatusDot then TweenService:Create(UI.cubeStatusDot, TweenInfo.new(0.75, Enum.EasingStyle.Sine), { BackgroundTransparency = 0 }):Play() end
                 task.wait(0.75)
             else
                 UI.statusDot.BackgroundTransparency = 0
-                if UI.cubeStatusDot then
-                    UI.cubeStatusDot.BackgroundTransparency = 0
-                end
+                if UI.cubeStatusDot then UI.cubeStatusDot.BackgroundTransparency = 0 end
                 task.wait(0.35)
             end
         end
@@ -8905,15 +8991,39 @@ function UI.build()
 end
 
 
--- 3. GUI, AND ARROW DETECTION
+-- 3. GUI, COMBO, TURN & AUTO-JOIN DETECTOR
+
+local ComboCache = { gui = nil, label = nil, tilesParent = nil, lastScan = 0 }
+local TypeboxCache = { box = nil, forGui = nil }
+local COMBO_RESCAN_INTERVAL = 0.4
+
+function Detector.clearRoundInstances()
+    ComboCache.gui, ComboCache.label, ComboCache.tilesParent, ComboCache.lastScan = nil, nil, nil, 0
+    TypeboxCache.box, TypeboxCache.forGui = nil, nil
+    table.clear(STATE.cachedArenaPlayers)
+    STATE.cachedArenaCenter, STATE.cachedArenaAt = nil, 0
+    STATE.lastPromptGui, STATE.lastPromptLabel, STATE.lastDetectedBox = nil, nil, nil
+    STATE.lastComboScanAt, STATE.lastRawCombo, STATE.lastObserveAt = 0, nil, 0
+    STATE.arrowHiddenSince = nil
+    STATE.pendingComboText, STATE.pendingComboSince = nil, nil
+    STATE.turnTypebox = nil
+    STATE.lastBoxLookupAt, STATE.boxMissingOnMeSince = 0, nil
+end
+
+function Detector.clearCaches()
+    Detector.clearRoundInstances()
+    STATE.turnTypeboxGui = nil
+    STATE.learnedBoxPath = nil
+    STATE.typeboxVerified = false
+    STATE.sawNoTypebox = false
+end
 
 local function angleDiff(a, b)
     return math.abs((a - b + 180) % 360 - 180)
 end
 
 local function getRelativePath(obj, root)
-    local parts = {}
-    local cur = obj
+    local parts, cur = {}, obj
     while cur and cur ~= root and cur ~= PlayerGui do
         table.insert(parts, 1, cur.Name)
         cur = cur.Parent
@@ -8921,25 +9031,9 @@ local function getRelativePath(obj, root)
     return table.concat(parts, "/")
 end
 
-local function isTurnKeyword(name)
-    local n = name:lower()
-    return n:find("turn", 1, true)
-        or n:find("currentplayer", 1, true)
-        or n:find("activeplayer", 1, true)
-        or n:find("bombtarget", 1, true)
-        or n:find("typer", 1, true)
-        or n == "current"
-        or n == "active"
-        or n == "target"
-end
-
 function Detector.isGuiVisible(obj)
-    if not obj or not obj:IsA("GuiObject") then
-        return false
-    end
-    if not obj.Visible or obj.AbsoluteSize.X < 2 or obj.AbsoluteSize.Y < 2 then
-        return false
-    end
+    if not obj or not obj:IsA("GuiObject") then return false end
+    if not obj.Visible or obj.AbsoluteSize.X < 2 or obj.AbsoluteSize.Y < 2 then return false end
     local cur = obj.Parent
     while cur and cur ~= PlayerGui do
         if cur:IsA("GuiObject") and not cur.Visible then
@@ -8950,6 +9044,21 @@ function Detector.isGuiVisible(obj)
         cur = cur.Parent
     end
     return cur == PlayerGui
+end
+
+-- Typing bar visibility check: catches bars hidden via Visible=false, TextEditable=false, or slid below the screen
+function Detector.isTypeboxVisible(box)
+    if not box or not box.Parent or not box:IsA("TextBox") then return false end
+    if not box.TextEditable or not Detector.isGuiVisible(box) then return false end
+    local cam = workspace.CurrentCamera
+    if cam then
+        local vp = cam.ViewportSize
+        local pos, size = box.AbsolutePosition, box.AbsoluteSize
+        if pos.Y >= (vp.Y + 4) or (pos.Y + size.Y) <= 0 or pos.X >= (vp.X + 4) or (pos.X + size.X) <= 0 then
+            return false
+        end
+    end
+    return true
 end
 
 function Detector.isChatOrSidebar(obj)
@@ -8980,108 +9089,274 @@ function Detector.getActiveScreenGuis()
     return guis
 end
 
-function Detector.isInsidePromptBand(guiObj, promptLabel)
-    if not promptLabel or not promptLabel.Parent or not guiObj:IsA("GuiObject") then
-        return false
+-- Auto-Join lobby button
+local function isJoinPromptText(rawText)
+    if type(rawText) ~= "string" or rawText == "" then return false end
+    local low = rawText:gsub("<[^>]+>", ""):match("^%s*(.-)%s*$"):lower()
+    if low == "" or low:find("leave", 1, true) then return false end
+    return low == "click to join" or low:find("click to join", 1, true) ~= nil or low == "join game" or low == "join round"
+end
+
+function Detector.findJoinButton()
+    for _, gui in ipairs(Detector.getActiveScreenGuis()) do
+        for _, desc in ipairs(gui:GetDescendants()) do
+            if (desc:IsA("TextButton") or desc:IsA("TextLabel"))
+                and isJoinPromptText(desc.Text)
+                and Detector.isGuiVisible(desc)
+                and not Detector.isChatOrSidebar(desc)
+            then
+                if desc:IsA("GuiButton") then return desc, desc end
+                local cur = desc.Parent
+                while cur and cur ~= gui do
+                    if cur:IsA("GuiButton") and Detector.isGuiVisible(cur) then return cur, desc end
+                    cur = cur.Parent
+                end
+                return desc, desc
+            end
+        end
     end
+    return nil, nil
+end
+
+local function fireButtonSignal(btn)
+    local fired = false
+    if not btn or not btn:IsA("GuiButton") then return false end
+    if type(firesignal) == "function" then
+        for _, sigName in ipairs({ "Activated", "MouseButton1Click", "MouseButton1Down", "MouseButton1Up" }) do
+            if pcall(function() firesignal(btn[sigName]) end) then fired = true end
+        end
+    elseif type(getconnections) == "function" then
+        for _, sigName in ipairs({ "Activated", "MouseButton1Click" }) do
+            pcall(function()
+                for _, conn in ipairs(getconnections(btn[sigName])) do
+                    if conn.Fire then conn:Fire(); fired = true
+                    elseif conn.Function then task.spawn(conn.Function); fired = true end
+                end
+            end)
+        end
+    end
+    return fired
+end
+
+local function clickObjectAtCenter(obj)
+    if not obj or not obj.Parent or not obj:IsA("GuiObject") then return false end
+    local pos, size = obj.AbsolutePosition, obj.AbsoluteSize
+    local inset = GuiService:GetGuiInset()
+    local cx = math.floor(pos.X + size.X * 0.5 + 0.5)
+    local cy = math.floor(pos.Y + size.Y * 0.5 + inset.Y + 0.5)
+
+    if VirtualInputManager then
+        local ok = pcall(function()
+            VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 1)
+            task.wait(0.03)
+            VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 1)
+        end)
+        if ok then return true end
+    end
+    if STATE.isWindowFocused and type(mousemoveabs) == "function" and type(mouse1click) == "function" then
+        return pcall(function() mousemoveabs(cx, cy); task.wait(0.02); mouse1click() end)
+    end
+    return false
+end
+
+function Detector.tryAutoJoin()
+    if not CONFIG.AutoJoin or STATE.isTyping or STATE.currentlyMyTurn or STATE.autoJoining then return end
+    if ComboCache.label and ComboCache.label.Parent and Detector.isGuiVisible(ComboCache.label) then return end
+
+    local now = os.clock()
+    if (now - STATE.lastAutoJoinScan) < 0.45 or (now - STATE.lastAutoJoinClick) < 1.8 then return end
+    STATE.lastAutoJoinScan = now
+
+    local joinBtn, textObj = Detector.findJoinButton()
+    if not joinBtn then return end
+
+    STATE.autoJoining = true
+    STATE.lastAutoJoinClick = now
+    task.spawn(function()
+        pcall(function()
+            if fireButtonSignal(joinBtn) then task.wait(0.25) end
+            if STATE.running and CONFIG.AutoJoin and joinBtn.Parent and Detector.isGuiVisible(joinBtn)
+                and textObj and textObj.Parent and isJoinPromptText(textObj.Text)
+            then
+                clickObjectAtCenter(joinBtn)
+            end
+            if UI.setAutoJoinToggle then
+                UI.setAutoJoinToggle(CONFIG.AutoJoin, "Joined lobby! Watching next round...")
+            end
+        end)
+        STATE.autoJoining = false
+    end)
+end
+
+function Detector.isInsidePromptBand(guiObj, promptLabel)
+    if not promptLabel or not promptLabel.Parent or not guiObj:IsA("GuiObject") then return false end
+    if ComboCache.tilesParent and guiObj:IsDescendantOf(ComboCache.tilesParent) then return true end
     local pPos, pSize = promptLabel.AbsolutePosition, promptLabel.AbsoluteSize
     local pos, size = guiObj.AbsolutePosition, guiObj.AbsoluteSize
     local dy = pos.Y - (pPos.Y + pSize.Y)
-    return dy >= -8 and dy <= 55 and math.abs((pos.X + size.X * 0.5) - (pPos.X + pSize.X * 0.5)) <= 145
+    return dy >= -8 and dy <= 64 and math.abs((pos.X + size.X * 0.5) - (pPos.X + pSize.X * 0.5)) <= 145
 end
 
-function Detector.extractCombo(promptLabel, rootGui)
+-- Combo extraction: prefers single-letter tile row directly below promptLabel; never grabs distant opponent text
+local function scanSingleTiles(promptLabel, container)
+    if not container then return nil, nil end
     local pPos, pSize = promptLabel.AbsolutePosition, promptLabel.AbsoluteSize
     local pCenterX, pBottomY = pPos.X + pSize.X * 0.5, pPos.Y + pSize.Y
-    local candidates, multiCandidate, multiBestDy = {}, nil, 999
+    local candidates = {}
 
-    for _, desc in ipairs(rootGui:GetDescendants()) do
-        if desc:IsA("TextLabel") and desc ~= promptLabel and Detector.isGuiVisible(desc) and not Detector.isChatOrSidebar(desc) then
-            local cleaned = (desc.Text or ""):gsub("<[^>]+>", ""):gsub("%s+", ""):upper()
-            local pos, size = desc.AbsolutePosition, desc.AbsoluteSize
-            local centerX, dy = pos.X + size.X * 0.5, pos.Y - pBottomY
-
-            if dy >= -2 and dy <= 52 and math.abs(centerX - pCenterX) <= 135 then
-                if cleaned:match("^%a$") then
-                    table.insert(candidates, { char = cleaned, x = centerX, y = pos.Y, w = size.X, h = size.Y, dy = dy })
-                elseif cleaned:match("^%a%a%a?%a?$") and dy < multiBestDy then
-                    multiBestDy, multiCandidate = dy, cleaned
+    for _, desc in ipairs(container:GetDescendants()) do
+        if desc:IsA("TextLabel") and desc ~= promptLabel then
+            local rawText = desc.Text
+            if type(rawText) == "string" and #rawText >= 1 and #rawText <= 64 then
+                local cleaned = rawText:gsub("<[^>]+>", ""):gsub("%s+", ""):upper()
+                if #cleaned == 1 and cleaned:match("^%a$") then
+                    if Detector.isGuiVisible(desc) and not Detector.isChatOrSidebar(desc) then
+                        local pos, size = desc.AbsolutePosition, desc.AbsoluteSize
+                        local centerX, dy = pos.X + size.X * 0.5, pos.Y - pBottomY
+                        if size.X <= 120 and dy >= -6 and dy <= 64 and math.abs(centerX - pCenterX) <= 140 then
+                            table.insert(candidates, { char = cleaned, x = centerX, y = pos.Y, w = size.X, h = size.Y, dy = dy, parent = desc.Parent })
+                        end
+                    end
                 end
             end
         end
     end
 
-    if #candidates >= 2 then
-        table.sort(candidates, function(a, b) return a.dy < b.dy end)
-        local anchor, rowTiles = candidates[1], {}
-        for _, tile in ipairs(candidates) do
-            if math.abs(tile.y - anchor.y) <= 10 and math.abs(tile.h - anchor.h) <= 12 then
-                table.insert(rowTiles, tile)
-            end
-        end
-        table.sort(rowTiles, function(a, b) return a.x < b.x end)
-
-        local deduped, lastX = {}, nil
-        for _, tile in ipairs(rowTiles) do
-            if not lastX or (tile.x - lastX) >= math.max(tile.w * 0.4, 8) then
-                table.insert(deduped, tile.char)
-                lastX = tile.x
-            end
-        end
-        if #deduped >= 2 and #deduped <= 4 then
-            return table.concat(deduped)
+    if #candidates < 2 then return nil, nil end
+    table.sort(candidates, function(a, b) return a.dy < b.dy end)
+    local anchor, rowTiles = candidates[1], {}
+    for _, tile in ipairs(candidates) do
+        if math.abs(tile.y - anchor.y) <= 16 and math.abs(tile.h - anchor.h) <= 18 then
+            table.insert(rowTiles, tile)
         end
     end
+    table.sort(rowTiles, function(a, b) return a.x < b.x end)
 
-    return multiCandidate
+    local deduped, lastX = {}, nil
+    for _, tile in ipairs(rowTiles) do
+        if not lastX or (tile.x - lastX) >= math.max(tile.w * 0.35, 6) then
+            table.insert(deduped, tile.char)
+            lastX = tile.x
+        end
+    end
+    if #deduped >= 2 and #deduped <= 4 then
+        return table.concat(deduped), anchor.parent
+    end
+    return nil, nil
 end
 
---[[Cache the last prompt label/gui we found and reuse it while it is
-still on screen, instead of walking every descendant of every ScreenGui on
-every tick. This is what caused the heavy lag while waiting for your turn
-(the full-tree scan ran repeatedly per second the whole time you weren't typing).]]
-local ComboCache = { gui = nil, label = nil, lastScan = 0 }
-local COMBO_RESCAN_INTERVAL = 0.5 -- full GUI re-scan MAX twice a second
+local function scanTightMultiLabel(promptLabel, container)
+    if not container then return nil end
+    local pPos, pSize = promptLabel.AbsolutePosition, promptLabel.AbsoluteSize
+    local pCenterX, pBottomY = pPos.X + pSize.X * 0.5, pPos.Y + pSize.Y
+    local bestText, bestDy = nil, 999
 
-function Detector.findComboAndGui()
+    for _, desc in ipairs(container:GetDescendants()) do
+        if desc:IsA("TextLabel") and desc ~= promptLabel then
+            local rawText = desc.Text
+            if type(rawText) == "string" and #rawText >= 2 and #rawText <= 64 then
+                local cleaned = rawText:gsub("<[^>]+>", ""):gsub("%s+", ""):upper()
+                if #cleaned >= 2 and #cleaned <= 4 and cleaned:match("^%a+$") then
+                    if Detector.isGuiVisible(desc) and not Detector.isChatOrSidebar(desc) then
+                        local pos, size = desc.AbsolutePosition, desc.AbsoluteSize
+                        local centerX, dy = pos.X + size.X * 0.5, pos.Y - pBottomY
+                        if dy >= -2 and dy <= 48 and math.abs(centerX - pCenterX) <= 85 and dy < bestDy then
+                            bestDy, bestText = dy, cleaned
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return bestText
+end
+
+function Detector.extractCombo(promptLabel, rootGui)
+    if ComboCache.tilesParent and ComboCache.tilesParent.Parent then
+        local c = scanSingleTiles(promptLabel, ComboCache.tilesParent)
+        if c then return c end
+    end
+    if promptLabel and promptLabel.Parent and promptLabel.Parent ~= rootGui then
+        local c, parentObj = scanSingleTiles(promptLabel, promptLabel.Parent)
+        if c then
+            ComboCache.tilesParent = parentObj
+            return c
+        end
+    end
+    local c, parentObj = scanSingleTiles(promptLabel, rootGui)
+    if c then
+        ComboCache.tilesParent = parentObj
+        return c
+    end
+    return scanTightMultiLabel(promptLabel, rootGui)
+end
+
+function Detector.findComboAndGui(forceFresh)
     local cached = ComboCache.label
     if cached and cached.Parent and ComboCache.gui and ComboCache.gui.Parent
-        and Detector.isGuiVisible(cached) then
+        and ComboCache.gui.Enabled and Detector.isGuiVisible(cached)
+    then
         local low = cached.Text:lower()
         if low:find("containing", 1, true) or low:find("word with", 1, true) then
-            return Detector.extractCombo(cached, ComboCache.gui), ComboCache.gui, cached
+            local now = os.clock()
+            if not forceFresh and STATE.lockedCombo and STATE.lastRawCombo and not STATE.currentlyMyTurn
+                and (now - (STATE.lastComboScanAt or 0)) < 0.12
+            then
+                return STATE.lastRawCombo, ComboCache.gui, cached
+            end
+            STATE.lastComboScanAt = now
+            local extracted = Detector.extractCombo(cached, ComboCache.gui)
+            STATE.lastRawCombo = extracted
+            return extracted, ComboCache.gui, cached
         end
     end
 
     local now = os.clock()
-    if now - ComboCache.lastScan < COMBO_RESCAN_INTERVAL then
+    if not forceFresh and (now - ComboCache.lastScan) < COMBO_RESCAN_INTERVAL then
         return nil, nil, nil
     end
     ComboCache.lastScan = now
 
     for _, gui in ipairs(Detector.getActiveScreenGuis()) do
         for _, desc in ipairs(gui:GetDescendants()) do
-            if desc:IsA("TextLabel") and Detector.isGuiVisible(desc) and not Detector.isChatOrSidebar(desc) then
-                local low = desc.Text:lower()
-                if low:find("containing", 1, true) or low:find("word with", 1, true) then
-                    ComboCache.gui, ComboCache.label = gui, desc
-                    return Detector.extractCombo(desc, gui), gui, desc
+            if desc:IsA("TextLabel") then
+                local text = desc.Text
+                if type(text) == "string" and #text >= 9 then
+                    local low = text:lower()
+                    if (low:find("containing", 1, true) or low:find("word with", 1, true))
+                        and Detector.isGuiVisible(desc) and not Detector.isChatOrSidebar(desc)
+                    then
+                        ComboCache.gui, ComboCache.label = gui, desc
+                        STATE.lastComboScanAt = now
+                        local extracted = Detector.extractCombo(desc, gui)
+                        STATE.lastRawCombo = extracted
+                        return extracted, gui, desc
+                    end
                 end
             end
         end
     end
-    ComboCache.gui, ComboCache.label = nil, nil
+
+    ComboCache.gui, ComboCache.label, ComboCache.tilesParent = nil, nil, nil
+    STATE.lastRawCombo = nil
     return nil, nil, nil
 end
 
-local TypeboxCache = { box = nil, forGui = nil }
-
-function Detector.findTypebox(preferredGui)
+function Detector.findTypebox(preferredGui, allowFullScan)
     local cached = TypeboxCache.box
-    if cached and cached.Parent and cached.TextEditable and Detector.isGuiVisible(cached)
-        and (not preferredGui or TypeboxCache.forGui == preferredGui or TypeboxCache.forGui == nil) then
+    if cached and Detector.isTypeboxVisible(cached)
+        and (not preferredGui or TypeboxCache.forGui == preferredGui or TypeboxCache.forGui == nil)
+    then
         return cached
     end
+
+    local focused = UserInputService:GetFocusedTextBox()
+    if focused and Detector.isTypeboxVisible(focused) and not Detector.isChatOrSidebar(focused) and focused.AbsoluteSize.X >= 40 then
+        TypeboxCache.box, TypeboxCache.forGui = focused, preferredGui
+        return focused
+    end
+
+    if not allowFullScan then return nil end
 
     local cam = workspace.CurrentCamera
     local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
@@ -9089,180 +9364,131 @@ function Detector.findTypebox(preferredGui)
 
     for _, gui in ipairs(Detector.getActiveScreenGuis()) do
         for _, desc in ipairs(gui:GetDescendants()) do
-            if desc:IsA("TextBox") and desc.TextEditable and Detector.isGuiVisible(desc) and not Detector.isChatOrSidebar(desc) then
+            if desc:IsA("TextBox") and Detector.isTypeboxVisible(desc) and not Detector.isChatOrSidebar(desc) then
                 if desc.AbsoluteSize.X >= 40 and desc.AbsoluteSize.Y >= 14 then
                     local score = (preferredGui and gui == preferredGui) and 50 or 0
                     local n = desc.Name:lower()
-                    if n:find("type") or n:find("word") or n:find("input") or n:find("answer") then
-                        score += 30
-                    end
+                    if n:find("type") or n:find("word") or n:find("input") or n:find("answer") then score += 30 end
                     local cx = desc.AbsolutePosition.X + desc.AbsoluteSize.X * 0.5
                     local cy = desc.AbsolutePosition.Y + desc.AbsoluteSize.Y * 0.5
-                    if math.abs(cx - vp.X * 0.5) < vp.X * 0.25 then
-                        score += 25
-                    end
-                    if cy > vp.Y * 0.55 then
-                        score += 15
-                    end
-                    if desc.AbsoluteSize.X >= 180 then
-                        score += 10
-                    end
-                    if score > bestScore then
-                        bestScore, bestBox = score, desc
-                    end
+                    if math.abs(cx - vp.X * 0.5) < vp.X * 0.25 then score += 25 end
+                    if cy > vp.Y * 0.55 then score += 15 end
+                    if desc.AbsoluteSize.X >= 180 then score += 10 end
+                    if score > bestScore then bestScore, bestBox = score, desc end
                 end
             end
         end
     end
+
     TypeboxCache.box, TypeboxCache.forGui = bestBox, preferredGui
     return bestBox
 end
 
-function Detector.resolvePlayer(val)
-    if typeof(val) == "Instance" and val:IsA("Player") then
-        return val
-    elseif type(val) == "string" then
-        return STATE.playerLookup[val:lower()]
-    elseif type(val) == "number" and val > 0 then
-        return STATE.playerByIdStr[tostring(math.floor(val))]
+function Detector.isTypeboxActive(promptGui)
+    local box = STATE.turnTypebox
+    if box and box.Parent and box:IsA("TextBox") then
+        if Detector.isTypeboxVisible(box) then
+            return true, box
+        end
+        return false, nil
     end
-    return nil
+
+    local focused = UserInputService:GetFocusedTextBox()
+    if focused and Detector.isTypeboxVisible(focused) and not Detector.isChatOrSidebar(focused) and focused.AbsoluteSize.X >= 120 then
+        local boxGui = focused:FindFirstAncestorOfClass("ScreenGui")
+        STATE.turnTypebox = focused
+        STATE.turnTypeboxGui = boxGui
+        STATE.learnedBoxPath = STATE.learnedBoxPath or getRelativePath(focused, boxGui or promptGui)
+        TypeboxCache.box, TypeboxCache.forGui = focused, promptGui
+        return true, focused
+    end
+
+    local boxGui = (STATE.turnTypeboxGui and STATE.turnTypeboxGui.Parent) and STATE.turnTypeboxGui or promptGui
+    if boxGui and boxGui.Parent then
+        local now = os.clock()
+        if (now - (STATE.lastBoxLookupAt or 0)) >= 0.15 then
+            STATE.lastBoxLookupAt = now
+            local cam = workspace.CurrentCamera
+            local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
+            for _, desc in ipairs(boxGui:GetDescendants()) do
+                if desc:IsA("TextBox") and Detector.isTypeboxVisible(desc) and not Detector.isChatOrSidebar(desc) then
+                    local cx = desc.AbsolutePosition.X + desc.AbsoluteSize.X * 0.5
+                    local cy = desc.AbsolutePosition.Y + desc.AbsoluteSize.Y * 0.5
+                    local matchesPath = STATE.learnedBoxPath and (getRelativePath(desc, boxGui) == STATE.learnedBoxPath)
+                    local matchesBottomBar = desc.AbsoluteSize.X >= 140 and cy > vp.Y * 0.62 and math.abs(cx - vp.X * 0.5) < vp.X * 0.25
+                    if matchesPath or matchesBottomBar then
+                        STATE.turnTypebox = desc
+                        STATE.turnTypeboxGui = boxGui
+                        STATE.learnedBoxPath = STATE.learnedBoxPath or getRelativePath(desc, boxGui)
+                        TypeboxCache.box, TypeboxCache.forGui = desc, promptGui
+                        return true, desc
+                    end
+                end
+            end
+        end
+    end
+
+    return false, nil
 end
 
 function Detector.matchPlayerFromLabel(rawText)
-    if type(rawText) ~= "string" or rawText == "" then
-        return nil
-    end
+    if type(rawText) ~= "string" or rawText == "" then return nil end
     local clean = rawText:gsub("<[^>]+>", ""):match("^%s*(.-)%s*$")
-    if not clean or clean == "" then
-        return nil
-    end
-    clean = clean:gsub("^@", "")
-    local low = clean:lower()
+    if not clean or clean == "" then return nil end
+    local low = clean:gsub("^@", ""):lower()
 
     local exact = STATE.playerLookup[low]
-    if exact then
-        return exact
-    end
+    if exact then return exact end
 
     local prefix = low:match("^(.+)%.%.%.$")
     if prefix and #prefix >= 4 then
         for nameKey, plr in pairs(STATE.playerLookup) do
-            if nameKey:sub(1, #prefix) == prefix then
-                return plr
-            end
+            if nameKey:sub(1, #prefix) == prefix then return plr end
         end
     end
-
     return nil
 end
 
-function Detector.scanReplicatedTurnState(promptGui, forceNow)
+function Detector.findArenaPlayers(promptGui, forceRefresh)
     local now = os.clock()
-    if not forceNow and (now - STATE.lastStateScan) < 0.8 then
-        return
-    end
-    STATE.lastStateScan = now
-
-    local roots = { ReplicatedStorage, workspace, LocalPlayer }
-    if promptGui then
-        table.insert(roots, promptGui)
+    if not forceRefresh and (now - STATE.cachedArenaAt) < 0.5 and #STATE.cachedArenaPlayers > 0 then
+        return STATE.cachedArenaPlayers, STATE.cachedArenaCenter
     end
 
-    local function register(key, kind, obj, attr, keywordName, val)
-        if not isTurnKeyword(keywordName) then
-            return
-        end
-        local plr = Detector.resolvePlayer(val)
-        if not plr then
-            return
-        end
-        local entry = STATE.stateCandidates[key]
-        if not entry then
-            if forceNow and plr == LocalPlayer then
-                STATE.stateCandidates[key] = { kind = kind, obj = obj, attr = attr, lastPlr = plr, startedOnMe = true }
-            end
-        elseif entry.startedOnMe and entry.lastPlr ~= plr then
-            entry.lastPlr = plr
-            if not STATE.confirmedState then
-                STATE.confirmedState = entry
-                STATE.arrowMotionVerified = true
-                STATE.turnSourceText = "State*"
-                UI.updateCalibration()
-            end
-        end
-    end
-
-    for _, root in ipairs(roots) do
-        pcall(function()
-            for attr, val in pairs(root:GetAttributes()) do
-                register(root:GetFullName() .. "@" .. attr, "attr", root, attr, attr, val)
-            end
-            for _, desc in ipairs(root:GetDescendants()) do
-                if desc:IsA("ObjectValue") or desc:IsA("StringValue") or desc:IsA("IntValue") or desc:IsA("NumberValue") then
-                    register(desc:GetFullName(), "val", desc, nil, desc.Name, desc.Value)
-                end
-                local attrs = desc:GetAttributes()
-                if next(attrs) ~= nil then
-                    for attr, val in pairs(attrs) do
-                        register(desc:GetFullName() .. "@" .. attr, "attr", desc, attr, attr, val)
-                    end
-                end
-            end
-        end)
-    end
-end
-
-function Detector.readReplicatedTurnPlayer()
-    local st = STATE.confirmedState
-    if not st then
-        return nil
-    end
-    if not st.obj or not st.obj.Parent then
-        STATE.confirmedState = nil
-        return nil
-    end
-    local val = (st.kind == "val") and st.obj.Value or st.obj:GetAttribute(st.attr)
-    return Detector.resolvePlayer(val)
-end
-
-function Detector.findArenaPlayers(promptGui)
-    local now = os.clock()
     local cam = workspace.CurrentCamera
     local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
-    local maxX = vp.X * 0.85
-    local minY = -45
-    local maxY = vp.Y - 15
-
-    local found = {}
+    local maxX, minY, maxY = vp.X * 0.85, -45, vp.Y - 15
+    local found, foundIsAvatar = {}, {}
 
     local function scanGui(rootGui)
-        if not rootGui then
-            return
-        end
+        if not rootGui then return end
         for _, desc in ipairs(rootGui:GetDescendants()) do
-            local isText = desc:IsA("TextLabel")
-            local isImg = (not isText) and (desc:IsA("ImageLabel") or desc:IsA("ImageButton"))
-
-            if (isText or isImg) and Detector.isGuiVisible(desc) and not Detector.isChatOrSidebar(desc) then
-                local cx = desc.AbsolutePosition.X + desc.AbsoluteSize.X * 0.5
-                local cy = desc.AbsolutePosition.Y + desc.AbsoluteSize.Y * 0.5
-
-                if cx > 10 and cx < maxX and cy >= minY and cy <= maxY then
-                    if isText then
-                        local plr = Detector.matchPlayerFromLabel(desc.Text)
-                        if plr and not found[plr] then
-                            found[plr] = Vector2.new(cx, cy + 28)
-                        end
-                    elseif isImg then
-                        local img = desc.Image
-                        if type(img) == "string" and img ~= "" and desc.AbsoluteSize.X >= 22 and desc.AbsoluteSize.X <= 160 then
-                            local idStr = img:match("[?&]id=(%d+)") or img:match("userid=(%d+)")
-                            if idStr then
-                                local plr = STATE.playerByIdStr[idStr]
-                                if plr and not found[plr] then
-                                    found[plr] = Vector2.new(cx, cy)
-                                end
+            if desc:IsA("TextLabel") then
+                local plr = Detector.matchPlayerFromLabel(desc.Text)
+                if plr and not found[plr] and (desc.TextTransparency or 0) < 0.35
+                    and Detector.isGuiVisible(desc) and not Detector.isChatOrSidebar(desc)
+                then
+                    local cx = desc.AbsolutePosition.X + desc.AbsoluteSize.X * 0.5
+                    local cy = desc.AbsolutePosition.Y + desc.AbsoluteSize.Y * 0.5
+                    if cx > 10 and cx < maxX and cy >= minY and cy <= maxY then
+                        found[plr] = Vector2.new(cx, cy + 70)
+                    end
+                end
+            elseif (desc:IsA("ImageLabel") or desc:IsA("ImageButton")) and (desc.ImageTransparency or 0) < 0.35 then
+                local img = desc.Image
+                if type(img) == "string" and img ~= "" then
+                    local lowImg = img:lower()
+                    local idStr = lowImg:match("[?&]id=(%d+)") or lowImg:match("userid=(%d+)")
+                    if idStr then
+                        local plr = STATE.playerByIdStr[idStr]
+                        if plr and not foundIsAvatar[plr] and desc.AbsoluteSize.X >= 22 and desc.AbsoluteSize.X <= 160
+                            and Detector.isGuiVisible(desc) and not Detector.isChatOrSidebar(desc)
+                        then
+                            local cx = desc.AbsolutePosition.X + desc.AbsoluteSize.X * 0.5
+                            local cy = desc.AbsolutePosition.Y + desc.AbsoluteSize.Y * 0.5
+                            if cx > 10 and cx < maxX and cy >= minY and cy <= maxY then
+                                found[plr] = Vector2.new(cx, cy)
+                                foundIsAvatar[plr] = true
                             end
                         end
                     end
@@ -9272,12 +9498,9 @@ function Detector.findArenaPlayers(promptGui)
     end
 
     scanGui(promptGui)
-
     if not found[LocalPlayer] then
         for _, gui in ipairs(Detector.getActiveScreenGuis()) do
-            if gui ~= promptGui then
-                scanGui(gui)
-            end
+            if gui ~= promptGui then scanGui(gui) end
         end
     end
 
@@ -9288,9 +9511,7 @@ function Detector.findArenaPlayers(promptGui)
     end
 
     if #list > 0 then
-        STATE.cachedArenaPlayers = list
-        STATE.cachedArenaCenter = sum / #list
-        STATE.cachedArenaAt = now
+        STATE.cachedArenaPlayers, STATE.cachedArenaCenter, STATE.cachedArenaAt = list, sum / #list, now
         return list, STATE.cachedArenaCenter
     end
     if (now - STATE.cachedArenaAt) <= 1.0 and #STATE.cachedArenaPlayers > 0 then
@@ -9301,40 +9522,55 @@ end
 
 function Detector.beginF1Calibration(promptGui)
     refreshPlayerCache()
-
-    -- Clear any previous replicated state lock so recalibration starts 100% fresh
-    table.clear(STATE.stateCandidates)
     table.clear(STATE.reacquireHistory)
-    STATE.confirmedState = nil
-    Detector.scanReplicatedTurnState(promptGui, true)
+    STATE.lastArrowSample, STATE.arrowStableSince = nil, 0
+    STATE.rawArrowRotSample, STATE.rawArrowStableSince = nil, 0
+    STATE.samePlayerTarget, STATE.samePlayerSince = nil, 0
+    STATE.promptMissingSince, STATE.lastAttemptSignature = nil, nil
+    STATE.arrowHiddenSince, STATE.pendingComboText, STATE.boxMissingOnMeSince = nil, nil, nil
 
-    local arenaPlayers, arenaCenter = Detector.findArenaPlayers(promptGui)
-    if not arenaCenter then
-        return false, "Could not find players in arena"
-    end
+    local arenaPlayers, arenaCenter = Detector.findArenaPlayers(promptGui, true)
+    if not arenaCenter then return false, "Could not find players in arena" end
 
     local myPos = nil
     for _, p in ipairs(arenaPlayers) do
-        if p.player == LocalPlayer then
-            myPos = p.pos
-            break
+        if p.player == LocalPlayer then myPos = p.pos; break end
+    end
+    if not myPos then return false, "Could not find your name in arena" end
+
+    -- Wait up to 0.18s for the arrow to finish settling if F1 was pressed slightly early
+    local function sampleCenterRotations()
+        local rots = {}
+        for _, desc in ipairs(promptGui:GetDescendants()) do
+            if (desc:IsA("ImageLabel") or desc:IsA("ImageButton") or desc:IsA("Frame"))
+                and Detector.isGuiVisible(desc) and not Detector.isChatOrSidebar(desc)
+            then
+                local center = desc.AbsolutePosition + desc.AbsoluteSize * 0.5
+                if (center - arenaCenter).Magnitude <= 280 and desc.AbsoluteSize.X >= 14 and desc.AbsoluteSize.X <= 460 then
+                    rots[desc] = desc.AbsoluteRotation
+                end
+            end
         end
-    end
-    if not myPos then
-        return false, "Could not find your name in arena"
+        return rots
     end
 
-    -- Small pause so if F1 was pressed mid-swing, the arrow finishes settling on you
-    task.wait(0.06)
+    local prevRots = sampleCenterRotations()
+    for _ = 1, 3 do
+        task.wait(0.05)
+        local curRots = sampleCenterRotations()
+        local stillMoving = false
+        for obj, r in pairs(curRots) do
+            if prevRots[obj] and angleDiff(r, prevRots[obj]) >= 2.5 then stillMoving = true; break end
+        end
+        prevRots = curRots
+        if not stillMoving then break end
+    end
 
-    STATE.calMyPos = myPos
-    STATE.calArenaCenter = arenaCenter
+    STATE.calMyPos, STATE.calArenaCenter = myPos, arenaCenter
     table.clear(STATE.calSnapshots)
-    STATE.confirmedArrow = nil
-    STATE.manualArrowOffset = nil
-    STATE.learnedArrowName = nil
-    STATE.learnedArrowPath = nil
-    STATE.arrowMotionVerified = (#arenaPlayers <= 1)
+    STATE.confirmedArrow, STATE.manualArrowOffset = nil, nil
+    STATE.learnedArrowName, STATE.learnedArrowPath, STATE.learnedPivotMode = nil, nil, "self"
+    STATE.arrowVerified = (#arenaPlayers <= 1)
 
     for _, desc in ipairs(promptGui:GetDescendants()) do
         if (desc:IsA("ImageLabel") or desc:IsA("ImageButton") or desc:IsA("Frame"))
@@ -9349,13 +9585,10 @@ function Detector.beginF1Calibration(promptGui)
                 if dist <= 280 and desc.AbsoluteSize.X >= 14 and desc.AbsoluteSize.Y >= 14 and desc.AbsoluteSize.X <= 460 then
                     local named = n:find("arrow", 1, true) or n:find("pointer", 1, true) or n:find("needle", 1, true) or n:find("hand", 1, true)
                     table.insert(STATE.calSnapshots, {
-                        obj = desc,
-                        path = getRelativePath(desc, promptGui),
-                        rot = desc.AbsoluteRotation,
-                        center = center,
+                        obj = desc, path = getRelativePath(desc, promptGui),
+                        rot = desc.AbsoluteRotation, center = center,
                         isImage = desc:IsA("ImageLabel") or desc:IsA("ImageButton"),
-                        named = named ~= nil,
-                        dist = dist,
+                        named = named ~= nil, dist = dist,
                     })
                 end
             end
@@ -9363,7 +9596,8 @@ function Detector.beginF1Calibration(promptGui)
     end
 
     STATE.isCalibrated = true
-    STATE.turnSourceText = STATE.arrowMotionVerified and "Solo*" or "Sync..."
+    STATE.currentlyMyTurn = true
+    STATE.turnSourceText = STATE.arrowVerified and "Solo*" or "Sync..."
     UI.setDiag(string.format("Synced %d candidates • waiting for spin", #STATE.calSnapshots))
     UI.updateCalibration()
     return true, nil
@@ -9379,30 +9613,20 @@ function Detector.getDynamicPivot(arrowObj, arenaCenter)
 end
 
 function Detector.tryVerifyMovingArrow()
-    if STATE.arrowMotionVerified or #STATE.calSnapshots == 0 or not STATE.calMyPos then
-        return STATE.arrowMotionVerified
+    if STATE.arrowVerified or #STATE.calSnapshots == 0 or not STATE.calMyPos then
+        return STATE.arrowVerified
     end
 
     local bestRot, bestRotScore = nil, -999
-    local bestPos, bestPosScore = nil, -999
-
     for _, snap in ipairs(STATE.calSnapshots) do
         local obj = snap.obj
         if obj and obj.Parent and Detector.isGuiVisible(obj) then
             local curCenter = obj.AbsolutePosition + obj.AbsoluteSize * 0.5
             local dRot = angleDiff(obj.AbsoluteRotation, snap.rot)
             local dPos = (curCenter - snap.center).Magnitude
-
             if dRot >= 18 then
                 local score = (snap.named and 240 or 0) + (snap.isImage and 40 or 0) + (280 - snap.dist) + (dPos <= 6 and 90 or 0) + math.min(dRot, 120)
-                if score > bestRotScore then
-                    bestRotScore, bestRot = score, snap
-                end
-            elseif dPos >= 22 then
-                local score = (snap.named and 240 or 0) + (snap.isImage and 40 or 0) + dPos
-                if score > bestPosScore then
-                    bestPosScore, bestPos = score, snap
-                end
+                if score > bestRotScore then bestRotScore, bestRot = score, snap end
             end
         end
     end
@@ -9411,16 +9635,12 @@ function Detector.tryVerifyMovingArrow()
         local obj = bestRot.obj
         local curCenter = obj.AbsolutePosition + obj.AbsoluteSize * 0.5
         local pivot
-
         if (curCenter - bestRot.center).Magnitude <= 8 then
-            STATE.learnedPivotMode = "self"
-            pivot = bestRot.center
+            STATE.learnedPivotMode, pivot = "self", bestRot.center
         elseif obj.Parent and obj.Parent:IsA("GuiObject") and obj.Parent.AbsoluteSize.X <= 460 then
-            STATE.learnedPivotMode = "parent"
-            pivot = obj.Parent.AbsolutePosition + obj.Parent.AbsoluteSize * 0.5
+            STATE.learnedPivotMode, pivot = "parent", obj.Parent.AbsolutePosition + obj.Parent.AbsoluteSize * 0.5
         else
-            STATE.learnedPivotMode = "arena"
-            pivot = STATE.calArenaCenter
+            STATE.learnedPivotMode, pivot = "arena", STATE.calArenaCenter
         end
 
         local v = STATE.calMyPos - pivot
@@ -9428,38 +9648,29 @@ function Detector.tryVerifyMovingArrow()
         STATE.confirmedArrow = obj
         STATE.learnedArrowName = obj.Name
         STATE.learnedArrowPath = bestRot.path
-        STATE.arrowMode = "rot"
-        STATE.arrowMotionVerified = true
-        STATE.turnSourceText = "Arrow*"
+        STATE.arrowVerified = true
+        STATE.turnSourceText = STATE.typeboxVerified and "Box*" or "Arrow*"
         UI.setDiag(string.format("Locked: %s (off %.0f°)", obj.Name, STATE.manualArrowOffset))
         UI.updateCalibration()
         return true
     end
-
-    if bestPos then
-        STATE.confirmedArrow = bestPos.obj
-        STATE.learnedArrowName = bestPos.obj.Name
-        STATE.learnedArrowPath = bestPos.path
-        STATE.learnedPivotMode = "arena"
-        STATE.arrowMode = "pos"
-        STATE.arrowMotionVerified = true
-        STATE.turnSourceText = "Arrow*"
-        UI.setDiag("Locked pos arrow: " .. bestPos.obj.Name)
-        UI.updateCalibration()
-        return true
-    end
-
     return false
 end
 
 function Detector.reacquireArrow(promptGui, arenaCenter)
-    if STATE.confirmedArrow and STATE.confirmedArrow.Parent and Detector.isGuiVisible(STATE.confirmedArrow) then
-        return STATE.confirmedArrow
+    if STATE.confirmedArrow and STATE.confirmedArrow.Parent then
+        if Detector.isGuiVisible(STATE.confirmedArrow) then
+            STATE.arrowHiddenSince = nil
+            return STATE.confirmedArrow
+        end
+        STATE.arrowHiddenSince = STATE.arrowHiddenSince or os.clock()
+        if (os.clock() - STATE.arrowHiddenSince) < 0.5 then
+            return STATE.confirmedArrow
+        end
     end
-    STATE.confirmedArrow = nil
-    if not promptGui or not arenaCenter then
-        return nil
-    end
+
+    STATE.confirmedArrow, STATE.arrowHiddenSince = nil, nil
+    if not promptGui or not arenaCenter then return nil end
 
     if STATE.learnedArrowPath then
         for _, desc in ipairs(promptGui:GetDescendants()) do
@@ -9491,12 +9702,13 @@ function Detector.reacquireArrow(promptGui, arenaCenter)
             end
         end
     end
-
     return nil
 end
 
 function Detector.detectArrowTurnPlayer(promptGui)
-    local arenaPlayers, arenaCenter = Detector.findArenaPlayers(promptGui)
+    local now = os.clock()
+    local wasCached = (now - STATE.cachedArenaAt) < 0.5 and #STATE.cachedArenaPlayers > 0
+    local arenaPlayers, arenaCenter = Detector.findArenaPlayers(promptGui, false)
     if #arenaPlayers == 0 or not arenaCenter then
         UI.setDiag("No arena players visible")
         return nil, false, nil
@@ -9505,7 +9717,7 @@ function Detector.detectArrowTurnPlayer(promptGui)
         UI.setDiag("Solo match • Your turn")
         return LocalPlayer, true, arenaPlayers[1].pos
     end
-    if not STATE.arrowMotionVerified then
+    if not STATE.arrowVerified or STATE.manualArrowOffset == nil then
         return nil, false, nil
     end
 
@@ -9515,48 +9727,50 @@ function Detector.detectArrowTurnPlayer(promptGui)
         return nil, false, nil
     end
 
-    local pivot = Detector.getDynamicPivot(arrowObj, arenaCenter)
-    local now = os.clock()
-    local pointAngle = nil
-
-    if STATE.arrowMode == "pos" then
-        local ov = (arrowObj.AbsolutePosition + arrowObj.AbsoluteSize * 0.5) - pivot
-        if ov.Magnitude < 8 then
-            return nil, false, nil
+    local function evalPlayers(players, center)
+        local pivot = Detector.getDynamicPivot(arrowObj, center)
+        local pointAngle = (arrowObj.AbsoluteRotation + STATE.manualArrowOffset) % 360
+        local bestPlr, bestPos, bestDiff, secondDiff = nil, nil, 999, 999
+        for _, p in ipairs(players) do
+            local v = p.pos - pivot
+            local d = angleDiff(pointAngle, math.deg(math.atan2(v.Y, v.X)))
+            if d < bestDiff then
+                secondDiff, bestDiff, bestPlr, bestPos = bestDiff, d, p.player, p.pos
+            elseif d < secondDiff then
+                secondDiff = d
+            end
         end
-        pointAngle = math.deg(math.atan2(ov.Y, ov.X)) % 360
-    else
-        if STATE.manualArrowOffset == nil then
-            return nil, false, nil
-        end
-        pointAngle = (arrowObj.AbsoluteRotation + STATE.manualArrowOffset) % 360
+        return bestPlr, bestPos, bestDiff, secondDiff, pointAngle
     end
 
+    local bestPlr, bestPos, bestDiff, secondDiff, pointAngle = evalPlayers(arenaPlayers, arenaCenter)
     if STATE.lastArrowSample == nil or angleDiff(pointAngle, STATE.lastArrowSample) >= 4.0 then
-        STATE.lastArrowSample = pointAngle
-        STATE.arrowStableSince = now
+        STATE.lastArrowSample, STATE.arrowStableSince = pointAngle, now
     end
     local isStable = (now - STATE.arrowStableSince) >= CONFIG.ArrowStableTime
 
-    local bestPlr, bestPos, bestDiff, secondDiff = nil, nil, 999, 999
-    for _, p in ipairs(arenaPlayers) do
-        local v = p.pos - pivot
-        local d = angleDiff(pointAngle, math.deg(math.atan2(v.Y, v.X)))
-        if d < bestDiff then
-            secondDiff, bestDiff, bestPlr, bestPos = bestDiff, d, p.player, p.pos
-        elseif d < secondDiff then
-            secondDiff = d
+    local function matchesTarget(count, bDiff, sDiff)
+        local maxCone = math.clamp(180 / count, 22, 48)
+        local margin = sDiff - bDiff
+        if bDiff <= maxCone and (count <= 2 or margin >= 2) then return true end
+        if isStable and bDiff <= 68 and (count <= 2 or margin >= 10) then return true end
+        return false
+    end
+
+    local matched = bestPlr and matchesTarget(#arenaPlayers, bestDiff, secondDiff)
+    if not matched and wasCached and (now - STATE.cachedArenaAt) > 0.15 then
+        arenaPlayers, arenaCenter = Detector.findArenaPlayers(promptGui, true)
+        if #arenaPlayers > 0 and arenaCenter then
+            bestPlr, bestPos, bestDiff, secondDiff, pointAngle = evalPlayers(arenaPlayers, arenaCenter)
+            matched = bestPlr and matchesTarget(#arenaPlayers, bestDiff, secondDiff)
         end
     end
 
-    local maxCone = math.clamp(180 / #arenaPlayers, 20, 48)
-    local marginOk = (#arenaPlayers <= 2) or ((secondDiff - bestDiff) >= 2)
-
     if bestPlr then
-        UI.setDiag(string.format("%s | %s (%.0f°) | %dp", arrowObj.Name, bestPlr.DisplayName, bestDiff, #arenaPlayers))
+        UI.setDiag(string.format("%s | %s (%.0f°/%.0f°) | %dp%s", arrowObj.Name, bestPlr.DisplayName, bestDiff, secondDiff, #arenaPlayers, matched and "" or " [MISS]"))
     end
 
-    if bestPlr and bestDiff <= maxCone and marginOk then
+    if matched then
         if bestPlr ~= STATE.samePlayerTarget then
             STATE.samePlayerTarget, STATE.samePlayerSince = bestPlr, now
         end
@@ -9566,26 +9780,86 @@ function Detector.detectArrowTurnPlayer(promptGui)
 end
 
 function Detector.detectTurn(promptGui)
-    Detector.scanReplicatedTurnState(promptGui, false)
-    local statePlr = Detector.readReplicatedTurnPlayer()
-    if statePlr then
-        local pos = nil
-        for _, p in ipairs(STATE.cachedArenaPlayers) do
-            if p.player == statePlr then
-                pos = p.pos
-                break
+    local now = os.clock()
+
+    if STATE.confirmedArrow and STATE.confirmedArrow.Parent then
+        local rawRot = STATE.confirmedArrow.AbsoluteRotation
+        if STATE.rawArrowRotSample == nil or angleDiff(rawRot, STATE.rawArrowRotSample) >= 1.5 then
+            STATE.rawArrowRotSample, STATE.rawArrowStableSince = rawRot, now
+        end
+    end
+
+    local boxActive, activeBox = Detector.isTypeboxActive(promptGui)
+
+    if not boxActive then
+        STATE.sawNoTypebox = true
+        if not STATE.typeboxVerified and (STATE.turnTypebox or STATE.learnedBoxPath) then
+            STATE.typeboxVerified = true
+            STATE.turnSourceText = "Box*"
+            UI.updateCalibration()
+        end
+    elseif STATE.sawNoTypebox and not STATE.typeboxVerified then
+        STATE.typeboxVerified = true
+        STATE.turnSourceText = "Box*"
+        UI.updateCalibration()
+    end
+
+    -- 1. Box* primary detector: visible typing bar = 100% your turn
+    if STATE.typeboxVerified and boxActive then
+        STATE.lastDetectedBox = activeBox
+        STATE.boxMissingOnMeSince = nil
+        local myPos = nil
+        local arenaPlayers, arenaCenter = Detector.findArenaPlayers(promptGui, false)
+        for _, p in ipairs(arenaPlayers) do
+            if p.player == LocalPlayer then myPos = p.pos; break end
+        end
+
+        -- Auto-heal arrow offset ONLY after arrow has been stationary >= 0.35s
+        local rawSettled = STATE.rawArrowRotSample ~= nil and (now - STATE.rawArrowStableSince) >= 0.35
+        if rawSettled and myPos and arenaCenter and STATE.confirmedArrow and STATE.confirmedArrow.Parent and Detector.isGuiVisible(STATE.confirmedArrow) then
+            local pivot = Detector.getDynamicPivot(STATE.confirmedArrow, arenaCenter)
+            local v = myPos - pivot
+            local expectedOffset = (math.deg(math.atan2(v.Y, v.X)) - STATE.confirmedArrow.AbsoluteRotation) % 360
+            if STATE.manualArrowOffset == nil or angleDiff(expectedOffset, STATE.manualArrowOffset) >= 25 then
+                STATE.manualArrowOffset = expectedOffset
             end
         end
-        UI.setDiag("State* | " .. statePlr.DisplayName)
-        return (statePlr == LocalPlayer), statePlr, "State*", true, pos
+
+        UI.setDiag("Box* | Your turn (typebox active)")
+        return true, LocalPlayer, "Box*", true, myPos
     end
 
+    -- 2. Arrow tracker (display current opponent + fallback if Box* misses a recreated bar)
     local arrowPlr, arrowStable, plrPos = Detector.detectArrowTurnPlayer(promptGui)
     if arrowPlr then
-        return (arrowPlr == LocalPlayer), arrowPlr, "Arrow*", arrowStable, plrPos
+        if arrowPlr == LocalPlayer then
+            local liveBox = Detector.findTypebox(promptGui, true)
+            if liveBox then
+                local boxGui = liveBox:FindFirstAncestorOfClass("ScreenGui")
+                STATE.turnTypebox, STATE.turnTypeboxGui = liveBox, boxGui
+                STATE.learnedBoxPath = STATE.learnedBoxPath or getRelativePath(liveBox, boxGui or promptGui)
+                STATE.lastDetectedBox, STATE.boxMissingOnMeSince = liveBox, nil
+                UI.setDiag("Box* | Your turn (reacquired box)")
+                return true, LocalPlayer, "Box*", true, plrPos
+            end
+
+            if STATE.typeboxVerified then
+                STATE.boxMissingOnMeSince = STATE.boxMissingOnMeSince or now
+                if (now - STATE.boxMissingOnMeSince) < 0.30 then
+                    UI.setDiag("Arrow* | You (waiting for typebox...)")
+                    return true, LocalPlayer, "Arrow*", false, plrPos
+                end
+            end
+
+            return true, LocalPlayer, "Arrow*", arrowStable, plrPos
+        end
+
+        STATE.boxMissingOnMeSince = nil
+        return false, arrowPlr, STATE.typeboxVerified and "Box*" or "Arrow*", arrowStable, plrPos
     end
 
-    return false, nil, STATE.arrowMotionVerified and "Scan" or "Sync...", false, nil
+    STATE.boxMissingOnMeSince = nil
+    return false, nil, STATE.typeboxVerified and "Box*" or (STATE.arrowVerified and "Scan" or "Sync..."), false, nil
 end
 
 
@@ -9593,157 +9867,122 @@ end
 
 function Tracker.disconnectListeners()
     for _, c in ipairs(STATE.guiListenerConns) do
-        if c.Connected then
-            c:Disconnect()
-        end
+        if c.Connected then c:Disconnect() end
     end
     table.clear(STATE.guiListenerConns)
-    STATE.hookedPromptGui = nil
+    if STATE.boxGuiConn and STATE.boxGuiConn.Connected then STATE.boxGuiConn:Disconnect() end
+    STATE.boxGuiConn, STATE.hookedPromptGui = nil, nil
 end
 
 function Tracker.extractStrictWord(rawText)
-    if type(rawText) ~= "string" or rawText == "" then
-        return nil
-    end
+    if type(rawText) ~= "string" or #rawText < 3 then return nil end
     local cleaned = rawText:gsub("<[^>]+>", ""):match("^%s*(.-)%s*$")
-    if not cleaned or cleaned == "" then
-        return nil
-    end
+    if not cleaned or #cleaned < 3 then return nil end
     cleaned = cleaned:gsub("[|_]+$", ""):match("^%s*(.-)%s*$")
-    if cleaned and cleaned:match("^[A-Za-z]+$") then
+    if cleaned and #cleaned >= 3 and cleaned:match("^[A-Za-z]+$") then
         return cleaned:lower()
     end
     return nil
 end
 
 function Tracker.isHighConfidenceObj(obj)
-    if not obj or not obj:IsA("GuiObject") then
-        return false
-    end
-    if obj:IsA("TextBox") then
-        return true
-    end
-    if STATE.lastDetectedBox and obj.Parent == STATE.lastDetectedBox.Parent then
-        return true
-    end
-
+    if not obj or not obj:IsA("GuiObject") then return false end
+    if obj:IsA("TextBox") then return true end
+    if STATE.lastDetectedBox and obj.Parent == STATE.lastDetectedBox.Parent then return true end
     local n = obj.Name:lower()
-    if n:find("type", 1, true) or n:find("word", 1, true) or n:find("input", 1, true) or n:find("answer", 1, true) then
-        return true
-    end
-
+    if n:find("type", 1, true) or n:find("word", 1, true) or n:find("input", 1, true) or n:find("answer", 1, true) then return true end
     local cam = workspace.CurrentCamera
     local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
     local cx = obj.AbsolutePosition.X + obj.AbsoluteSize.X * 0.5
     local cy = obj.AbsolutePosition.Y + obj.AbsoluteSize.Y * 0.5
-
-    if cy > vp.Y * 0.58 and math.abs(cx - vp.X * 0.5) < vp.X * 0.34 then
-        return true
-    end
-    if STATE.activeTurnPlayerPos and (Vector2.new(cx, cy) - STATE.activeTurnPlayerPos).Magnitude <= 155 then
-        return true
-    end
+    if cy > vp.Y * 0.58 and math.abs(cx - vp.X * 0.5) < vp.X * 0.34 then return true end
+    if STATE.activeTurnPlayerPos and (Vector2.new(cx, cy) - STATE.activeTurnPlayerPos).Magnitude <= 155 then return true end
     return false
 end
 
 function Tracker.recordPending(word, confidence, fromLiveChange)
-    if not word or not STATE.lockedCombo or STATE.isTyping or STATE.currentlyMyTurn then
-        return
-    end
+    if not word or not STATE.lockedCombo or STATE.isTyping or STATE.currentlyMyTurn then return end
     local lowerCombo = STATE.lockedCombo:lower()
-    if #word < math.max(3, #lowerCombo) or #word > 34 or word == lowerCombo then
-        return
-    end
-    if UI_STOPWORDS[word] or STATE.playerNamesSet[word] then
-        return
-    end
-    if not word:find(lowerCombo, 1, true) then
-        return
-    end
+    if #word < math.max(3, #lowerCombo) or #word > 50 or word == lowerCombo then return end
+    if UI_STOPWORDS[word] or STATE.playerNamesSet[word] or not word:find(lowerCombo, 1, true) then return end
 
     local inBank = (STATE.masterWordSet[word] == true)
-    if not inBank and confidence < 2 and not fromLiveChange then
-        return
-    end
+    if not inBank and confidence < 2 and not fromLiveChange then return end
 
     local eff = confidence + (inBank and 2 or 0) + (fromLiveChange and 1 or 0)
     if not STATE.pendingOtherWord
         or eff > STATE.pendingOtherConf
         or (eff == STATE.pendingOtherConf and (#word >= #STATE.pendingOtherWord or STATE.pendingOtherWord:sub(1, #word) ~= word))
     then
-        STATE.pendingOtherWord = word
-        STATE.pendingOtherConf = eff
+        STATE.pendingOtherWord, STATE.pendingOtherConf = word, eff
     end
 end
 
 local function inspectLiveTextObj(obj)
-    if not STATE.running or not STATE.isCalibrated or STATE.isTyping or STATE.currentlyMyTurn or not STATE.lockedCombo then
-        return
-    end
-    if obj == STATE.lastPromptLabel or not Detector.isGuiVisible(obj) then
-        return
-    end
-    if Detector.isInsidePromptBand(obj, STATE.lastPromptLabel) then
-        return
-    end
-
+    if not STATE.running or not STATE.isCalibrated or STATE.isTyping or STATE.currentlyMyTurn or not STATE.lockedCombo then return end
+    if obj == STATE.lastPromptLabel then return end
     local w = Tracker.extractStrictWord(obj.Text)
-    if w then
-        Tracker.recordPending(w, Tracker.isHighConfidenceObj(obj) and 3 or 1, true)
-    end
+    if not w or not Detector.isGuiVisible(obj) or Detector.isInsidePromptBand(obj, STATE.lastPromptLabel) then return end
+    Tracker.recordPending(w, Tracker.isHighConfidenceObj(obj) and 3 or 1, true)
 end
 
 local function attachTextWatcher(obj)
-    if not (obj:IsA("TextLabel") or obj:IsA("TextBox")) or Detector.isChatOrSidebar(obj) then
-        return
-    end
-    if STATE.isCalibrated and not STATE.currentlyMyTurn then
-        inspectLiveTextObj(obj)
-    end
-    table.insert(STATE.guiListenerConns, obj:GetPropertyChangedSignal("Text"):Connect(function()
-        inspectLiveTextObj(obj)
-    end))
+    if not (obj:IsA("TextLabel") or obj:IsA("TextBox")) or Detector.isChatOrSidebar(obj) then return end
+    if STATE.isCalibrated and not STATE.currentlyMyTurn then inspectLiveTextObj(obj) end
+    table.insert(STATE.guiListenerConns, obj:GetPropertyChangedSignal("Text"):Connect(function() inspectLiveTextObj(obj) end))
+end
+
+function Tracker.watchBoxGui(boxGui)
+    if STATE.boxGuiConn and STATE.boxGuiConn.Connected then STATE.boxGuiConn:Disconnect(); STATE.boxGuiConn = nil end
+    if not boxGui or boxGui == STATE.hookedPromptGui then return end
+    STATE.boxGuiConn = boxGui.DescendantAdded:Connect(function(desc)
+        if STATE.running and STATE.isCalibrated and desc:IsA("TextBox") and not Detector.isChatOrSidebar(desc) then
+            if not STATE.turnTypebox or not STATE.turnTypebox.Parent then
+                STATE.turnTypebox, STATE.turnTypeboxGui = desc, boxGui
+                TypeboxCache.box, TypeboxCache.forGui = desc, STATE.lastPromptGui
+            end
+        end
+    end)
 end
 
 function Tracker.ensureListeners(promptGui)
-    if not promptGui or promptGui == STATE.hookedPromptGui then
-        return
-    end
+    if not promptGui or promptGui == STATE.hookedPromptGui then return end
     Tracker.disconnectListeners()
     STATE.hookedPromptGui = promptGui
 
-    for _, desc in ipairs(promptGui:GetDescendants()) do
-        attachTextWatcher(desc)
-    end
+    for _, desc in ipairs(promptGui:GetDescendants()) do attachTextWatcher(desc) end
     table.insert(STATE.guiListenerConns, promptGui.DescendantAdded:Connect(function(desc)
-        if STATE.running and STATE.isCalibrated then
-            attachTextWatcher(desc)
+        if not STATE.running or not STATE.isCalibrated then return end
+        if desc:IsA("TextBox") and not Detector.isChatOrSidebar(desc) then
+            if not STATE.turnTypebox or not STATE.turnTypebox.Parent then
+                STATE.turnTypebox, STATE.turnTypeboxGui = desc, promptGui
+                TypeboxCache.box, TypeboxCache.forGui = desc, promptGui
+            end
         end
+        attachTextWatcher(desc)
     end))
+
+    if STATE.turnTypeboxGui and STATE.turnTypeboxGui ~= promptGui then
+        Tracker.watchBoxGui(STATE.turnTypeboxGui)
+    end
 end
 
 function Tracker.observe(typebox, activeCombo, promptLabel)
-    if not activeCombo or #activeCombo < 2 then
-        return
-    end
+    if not activeCombo or #activeCombo < 2 then return end
+    local now = os.clock()
+    if (now - STATE.lastObserveAt) < 0.35 then return end
+    STATE.lastObserveAt = now
+
     local lowerCombo = activeCombo:lower()
     local bestWord, bestConf, bestScore = nil, -1, -1
 
     local function consider(w, conf)
-        if not w or #w < math.max(3, #lowerCombo) or #w > 34 or w == lowerCombo then
-            return
-        end
-        if UI_STOPWORDS[w] or STATE.playerNamesSet[w] or not w:find(lowerCombo, 1, true) then
-            return
-        end
+        if not w or #w < math.max(3, #lowerCombo) or #w > 50 or w == lowerCombo then return end
+        if UI_STOPWORDS[w] or STATE.playerNamesSet[w] or not w:find(lowerCombo, 1, true) then return end
         local inBank = (STATE.masterWordSet[w] == true)
-        if conf < 2 and not inBank then
-            return
-        end
+        if conf < 2 and not inBank then return end
         local score = (conf * 40) + (#w * 3) + (inBank and 60 or 0)
-        if score > bestScore then
-            bestScore, bestWord, bestConf = score, w, conf
-        end
+        if score > bestScore then bestScore, bestWord, bestConf = score, w, conf end
     end
 
     if typebox then
@@ -9759,105 +9998,34 @@ function Tracker.observe(typebox, activeCombo, promptLabel)
 
     local cam = workspace.CurrentCamera
     local arenaMaxX = (cam and cam.ViewportSize.X or 1920) * 0.84
-    local singleTiles = {}
+    local guisToScan = (STATE.lastPromptGui and STATE.lastPromptGui.Parent) and { STATE.lastPromptGui } or Detector.getActiveScreenGuis()
 
-    for _, gui in ipairs(Detector.getActiveScreenGuis()) do
+    for _, gui in ipairs(guisToScan) do
         for _, desc in ipairs(gui:GetDescendants()) do
-            if (desc:IsA("TextLabel") or desc:IsA("TextBox"))
-                and desc ~= promptLabel and Detector.isGuiVisible(desc)
-                and not Detector.isChatOrSidebar(desc) and not Detector.isInsidePromptBand(desc, promptLabel)
-            then
-                local pos, size = desc.AbsolutePosition, desc.AbsoluteSize
-                if pos.X < arenaMaxX and type(desc.Text) == "string" and desc.Text ~= "" then
-                    local single = desc.Text:gsub("<[^>]+>", ""):match("^%s*([A-Za-z])%s*$")
-                    if single then
-                        table.insert(singleTiles, {
-                            char = single:lower(), x = pos.X, y = pos.Y + size.Y * 0.5,
-                            w = size.X, h = size.Y, highConf = Tracker.isHighConfidenceObj(desc),
-                        })
-                    else
-                        local w = Tracker.extractStrictWord(desc.Text)
-                        if w then
-                            consider(w, Tracker.isHighConfidenceObj(desc) and 2 or 1)
-                        end
-                    end
+            if (desc:IsA("TextLabel") or desc:IsA("TextBox")) and desc ~= promptLabel then
+                local word = Tracker.extractStrictWord(desc.Text)
+                if word and Detector.isGuiVisible(desc) and not Detector.isChatOrSidebar(desc)
+                    and not Detector.isInsidePromptBand(desc, promptLabel)
+                    and desc.AbsolutePosition.X < arenaMaxX
+                then
+                    consider(word, Tracker.isHighConfidenceObj(desc) and 2 or 1)
                 end
             end
         end
     end
 
-    if #singleTiles >= 2 then
-        table.sort(singleTiles, function(a, b) return a.y < b.y end)
-        local clusters = {}
-        for _, tile in ipairs(singleTiles) do
-            local placed = false
-            for _, cl in ipairs(clusters) do
-                if math.abs(tile.y - cl.y) <= 12 and math.abs(tile.h - cl.h) <= 10 then
-                    table.insert(cl.tiles, tile)
-                    placed = true
-                    break
-                end
-            end
-            if not placed then
-                table.insert(clusters, { y = tile.y, h = tile.h, tiles = { tile } })
-            end
-        end
-
-        for _, cl in ipairs(clusters) do
-            if #cl.tiles >= 2 then
-                table.sort(cl.tiles, function(a, b) return a.x < b.x end)
-                local runChars, runHigh, prev = {}, false, nil
-                local function flush()
-                    if #runChars >= 3 and #runChars <= 34 then
-                        consider(table.concat(runChars), runHigh and 2 or 1)
-                    end
-                    table.clear(runChars)
-                    runHigh = false
-                end
-                for _, t in ipairs(cl.tiles) do
-                    if not prev then
-                        table.insert(runChars, t.char)
-                        runHigh, prev = t.highConf, t
-                    else
-                        local dx = t.x - prev.x
-                        if dx >= 4 then
-                            if dx <= math.max(prev.w * 1.8, 46) then
-                                table.insert(runChars, t.char)
-                                runHigh = runHigh or t.highConf
-                            else
-                                flush()
-                                table.insert(runChars, t.char)
-                                runHigh = t.highConf
-                            end
-                            prev = t
-                        end
-                    end
-                end
-                flush()
-            end
-        end
-    end
-
-    if bestWord then
-        Tracker.recordPending(bestWord, bestConf, false)
-    end
+    if bestWord then Tracker.recordPending(bestWord, bestConf, false) end
 end
 
 function Tracker.stashBeforeTurnChange(oldCombo)
     if STATE.pendingOtherWord and oldCombo then
-        STATE.finishedOtherWord = STATE.pendingOtherWord
-        STATE.finishedOtherCombo = oldCombo
-        STATE.finishedOtherAt = os.clock()
+        STATE.finishedOtherWord, STATE.finishedOtherCombo, STATE.finishedOtherAt = STATE.pendingOtherWord, oldCombo, os.clock()
     end
-    STATE.pendingOtherWord = nil
-    STATE.pendingOtherConf = 0
+    STATE.pendingOtherWord, STATE.pendingOtherConf = nil, 0
 end
 
 function Tracker.tryCommitFinished(newCombo)
-    if not STATE.finishedOtherWord then
-        return
-    end
-
+    if not STATE.finishedOtherWord then return end
     if newCombo and STATE.finishedOtherCombo then
         if newCombo ~= STATE.finishedOtherCombo then
             if not STATE.usedWords[STATE.finishedOtherWord] then
@@ -9879,55 +10047,44 @@ end
 
 -- 5. TYPING, SUBMISSION & CALIBRATION EXECUTION
 
-function Typer.sendOSKey(vkCode)
-    if not HAS_KEYPRESS or not STATE.isWindowFocused then
-        return false
-    end
+function Typer.sendOSKey(vkCode, ultraFast)
+    if not HAS_KEYPRESS or not STATE.isWindowFocused then return false end
     return pcall(function()
         keypress(vkCode)
-        task.wait(0.015)
+        if not ultraFast then task.wait(0.015) end
         keyrelease(vkCode)
     end)
 end
 
 function Typer.sendSubmit(typebox)
-    Typer.sendOSKey(0x0D)
+    Typer.sendOSKey(0x0D, false)
     task.wait(0.03)
     if typebox then
-        pcall(function()
-            if typebox:IsFocused() then
-                typebox:ReleaseFocus(true)
-            end
-        end)
+        pcall(function() if typebox:IsFocused() then typebox:ReleaseFocus(true) end end)
         task.wait(0.02)
-        pcall(function()
-            if typebox:IsFocused() then
-                typebox:ReleaseFocus(false)
-            end
-        end)
+        pcall(function() if typebox:IsFocused() then typebox:ReleaseFocus(false) end end)
     end
 end
 
 function Typer.typeWord(typebox, word, isManual)
-    if STATE.isTyping then
-        return false
-    end
+    if STATE.isTyping then return false end
     STATE.isTyping = true
     local completed = false
 
     local ok, err = pcall(function()
+        local isUltra = (CONFIG.MaxKeyDelay <= 0.005)
         if typebox then
             pcall(function() typebox:CaptureFocus() end)
-            task.wait(0.05)
+            task.wait(isUltra and 0.03 or 0.05)
             pcall(function() typebox.Text = "" end)
         end
 
-        local typedSoFar, madeTypo = "", false
+        local typedSoFar, madeTypo, prevCh = "", false, nil
         local function pushChar(ch)
             typedSoFar ..= ch
             if CONFIG.InputMode == "Direct" and typebox then
                 typebox.Text = typedSoFar
-            elseif not Typer.sendOSKey(string.byte(ch:upper())) and typebox then
+            elseif not Typer.sendOSKey(string.byte(ch:upper()), isUltra) and typebox then
                 typebox.Text = typedSoFar
             end
         end
@@ -9935,18 +10092,14 @@ function Typer.typeWord(typebox, word, isManual)
             typedSoFar = typedSoFar:sub(1, math.max(0, #typedSoFar - 1))
             if CONFIG.InputMode == "Direct" and typebox then
                 typebox.Text = typedSoFar
-            elseif not Typer.sendOSKey(0x08) and typebox then
+            elseif not Typer.sendOSKey(0x08, isUltra) and typebox then
                 typebox.Text = typedSoFar
             end
         end
 
         for i = 1, #word do
-            if not STATE.running or (not isManual and not CONFIG.Enabled) then
-                return
-            end
-            if typebox and not Detector.isGuiVisible(typebox) then
-                return
-            end
+            if not STATE.running or (not isManual and not CONFIG.Enabled) then return end
+            if typebox and not Detector.isTypeboxVisible(typebox) then return end
 
             local ch = word:sub(i, i):lower()
             if CONFIG.HumanTypos and not madeTypo and i > 1 and i < #word and math.random() < 0.08 then
@@ -9961,21 +10114,26 @@ function Typer.typeWord(typebox, word, isManual)
                 end
             end
 
+            if isUltra and CONFIG.InputMode == "OS" and ch == prevCh then task.wait(0.005) end
             pushChar(ch)
-            task.wait(CONFIG.MinKeyDelay + math.random() * (CONFIG.MaxKeyDelay - CONFIG.MinKeyDelay))
+            prevCh = ch
+
+            local delay = CONFIG.MinKeyDelay + math.random() * (CONFIG.MaxKeyDelay - CONFIG.MinKeyDelay)
+            if not isUltra and #word >= 16 then
+                delay = math.min(delay, math.max(0.012, (1.8 / #word) - 0.015))
+            end
+            task.wait(delay)
         end
 
         if STATE.running and (isManual or CONFIG.Enabled) then
-            task.wait(0.04)
+            task.wait(isUltra and 0.025 or 0.04)
             Typer.sendSubmit(typebox)
             completed = true
         end
     end)
 
     STATE.isTyping = false
-    if not ok then
-        UI.setStatus("TYPE ERROR", tostring(err), COLORS.Red)
-    end
+    if not ok then UI.setStatus("TYPE ERROR", tostring(err), COLORS.Red) end
     return completed
 end
 
@@ -9989,7 +10147,8 @@ function Typer.execute(combo, typebox, promptGui, isManual)
         return
     end
 
-    local word = Bank.findWord(combo)
+    local skipXXL = (not isManual) and (STATE.turnAttempts > 1)
+    local word = Bank.findWord(combo, skipXXL)
     if not word then
         UI.setStatus("NO WORD FOUND", "No unused match for [" .. combo .. "]", COLORS.Amber)
         task.wait(0.8)
@@ -9999,26 +10158,36 @@ function Typer.execute(combo, typebox, promptGui, isManual)
     STATE.usedWords[word] = true
     STATE.usedCount += 1
     STATE.mySentCount += 1
-    STATE.pendingOtherWord = nil
-    STATE.pendingOtherConf = 0
+    STATE.pendingOtherWord, STATE.pendingOtherConf = nil, 0
     UI.updateStats()
 
     UI.setStatus("TYPING (" .. CONFIG.InputMode .. ")", string.format("[%s] -> %s", combo, word), COLORS.Cyan)
     UI.setCombo(combo, true)
 
-    local activeBox = (typebox and typebox.Parent) and typebox or Detector.findTypebox(promptGui)
-    if not Typer.typeWord(activeBox, word, isManual) then
-        return
-    end
+    local activeBox = (typebox and Detector.isTypeboxVisible(typebox)) and typebox or Detector.findTypebox(promptGui, true)
+    if not Typer.typeWord(activeBox, word, isManual) then return end
 
     local elapsed = 0
     while elapsed < CONFIG.RetryDelay and STATE.running do
         task.wait(0.06)
         elapsed += 0.06
-        local curRaw, curGui = Detector.findComboAndGui()
+        local curRaw, curGui = Detector.findComboAndGui(true)
+        local boxActive = Detector.isTypeboxActive(curGui or promptGui)
 
-        if not STATE.arrowMotionVerified then
-            Detector.scanReplicatedTurnState(curGui or promptGui, false)
+        if (STATE.turnTypebox or STATE.learnedBoxPath) and not boxActive then
+            STATE.sawNoTypebox = true
+            if not STATE.typeboxVerified then
+                STATE.typeboxVerified = true
+                STATE.turnSourceText = "Box*"
+                UI.updateCalibration()
+            end
+            Detector.tryVerifyMovingArrow()
+            UI.unlockCombo(true)
+            STATE.turnAttempts = 0
+            break
+        end
+
+        if not STATE.arrowVerified then
             if Detector.tryVerifyMovingArrow() then
                 UI.unlockCombo(true)
                 break
@@ -10028,10 +10197,11 @@ function Typer.execute(combo, typebox, promptGui, isManual)
             if not stillMine then
                 UI.unlockCombo(true)
                 STATE.lockedForPlayer = curPlr
-                STATE.trackedTurnPlayer = curPlr
+                STATE.turnAttempts = 0
                 break
             elseif curRaw and curRaw ~= combo then
                 STATE.lockedCombo = curRaw
+                STATE.turnAttempts = 0
                 UI.setCombo(curRaw, true)
                 break
             end
@@ -10039,7 +10209,7 @@ function Typer.execute(combo, typebox, promptGui, isManual)
     end
 
     if STATE.running and CONFIG.Enabled then
-        if STATE.arrowMotionVerified then
+        if STATE.arrowVerified or STATE.typeboxVerified then
             UI.setStatus("WAITING FOR TURN", "Submitted: " .. word, COLORS.Green)
         else
             UI.setStatus("VERIFYING ARROW", "Waiting for arrow to turn to next player...", COLORS.Amber)
@@ -10049,43 +10219,58 @@ end
 
 function Typer.calibrateAndType()
     UI.dismissPopup()
-    if STATE.isTyping then
-        return
-    end
+    -- Force-clear any stuck typing lock so F1 always responds immediately
+    STATE.isTyping = false
+    UI.setStatus("CALIBRATING...", "Scanning round UI...", COLORS.Cyan)
+
     task.spawn(function()
         local ok, err = pcall(function()
-            local rawCombo, promptGui, promptLabel = Detector.findComboAndGui()
-            local activeGui = promptGui or STATE.lastPromptGui
-            local typebox = Detector.findTypebox(activeGui)
+            Tracker.disconnectListeners()
+            Detector.clearCaches()
 
-            STATE.lastPromptGui = activeGui
-            STATE.lastPromptLabel = promptLabel or STATE.lastPromptLabel
-            STATE.lastDetectedBox = typebox or STATE.lastDetectedBox
+            local rawCombo, promptGui, promptLabel = Detector.findComboAndGui(true)
+            -- Brief retry if prompt tiles are mid-animation
+            if promptGui and (not rawCombo or #rawCombo < 2) then
+                for _ = 1, 4 do
+                    task.wait(0.05)
+                    rawCombo = Detector.extractCombo(promptLabel, promptGui)
+                    if rawCombo and #rawCombo >= 2 then break end
+                end
+            end
 
-            if not activeGui then
+            if not promptGui then
                 UI.setStatus("NOT IN MATCH", "Join a round & press F1 on your turn", COLORS.Amber)
                 return
             end
 
-            local okCal, calErr = Detector.beginF1Calibration(activeGui)
+            local typebox = Detector.findTypebox(promptGui, true)
+            STATE.lastPromptGui, STATE.lastPromptLabel, STATE.lastDetectedBox = promptGui, promptLabel, typebox
+
+            if typebox then
+                local boxGui = typebox:FindFirstAncestorOfClass("ScreenGui") or promptGui
+                STATE.turnTypebox, STATE.turnTypeboxGui = typebox, boxGui
+                STATE.learnedBoxPath = getRelativePath(typebox, boxGui)
+            end
+
+            local okCal, calErr = Detector.beginF1Calibration(promptGui)
             if not okCal then
                 UI.setStatus("CALIBRATION FAILED", calErr or "Make sure arrow is on you & press F1", COLORS.Red)
                 return
             end
 
-            Tracker.ensureListeners(activeGui)
+            Tracker.ensureListeners(promptGui)
             STATE.lockedForPlayer = LocalPlayer
-            STATE.trackedTurnPlayer = LocalPlayer
             STATE.wasMyTurn = true
             STATE.turnAttempts = 1
 
             if rawCombo and #rawCombo >= 2 then
                 STATE.lockedCombo = rawCombo
+                STATE.lastAttemptSignature = rawCombo .. "|" .. tostring(LocalPlayer)
                 UI.setCombo(rawCombo, true)
                 UI.setStatus("CALIBRATING...", "Typing word & syncing arrow...", COLORS.Cyan)
-                Typer.execute(rawCombo, STATE.lastDetectedBox, activeGui, true)
+                Typer.execute(rawCombo, STATE.lastDetectedBox, promptGui, true)
             else
-                UI.setStatus("CALIBRATING...", "Waiting for arrow motion...", COLORS.Amber)
+                UI.setStatus("CALIBRATING...", "Waiting for combo / arrow motion...", COLORS.Amber)
             end
         end)
 
@@ -10095,14 +10280,13 @@ function Typer.calibrateAndType()
     end)
 end
 
--- 6. BOOTSTRAP UI, HOTKEYS (F1 and F2) and MAIN LOOP
+
+-- 6. BOOTSTRAP UI, HOTKEYS (F1 and F2) AND MAIN LOOP
 
 UI.build()
 
 table.insert(STATE.connections, UserInputService.InputBegan:Connect(function(input, _gp)
-    if not STATE.running then
-        return
-    end
+    if not STATE.running then return end
     if input.KeyCode == CONFIG.CalibrateKey then
         Typer.calibrateAndType()
     elseif input.KeyCode == CONFIG.ResetUsedKey then
@@ -10112,40 +10296,58 @@ end))
 
 task.spawn(function()
     while STATE.running do
+        if CONFIG.AutoJoin then
+            pcall(Detector.tryAutoJoin)
+        end
+
         if not STATE.isCalibrated then
             task.wait(0.15)
             continue
         end
 
-        task.wait(0.1)
+        task.wait(STATE.currentlyMyTurn and 0.06 or 0.10)
 
         if STATE.fileLoaded and not STATE.isTyping then
             local ok, err = pcall(function()
-                local rawCombo, promptGui, promptLabel = Detector.findComboAndGui()
-                local typebox = Detector.findTypebox(promptGui)
+                local rawCombo, promptGui, promptLabel = Detector.findComboAndGui(false)
+                STATE.lastPromptGui, STATE.lastPromptLabel = promptGui, promptLabel
 
-                STATE.lastDetectedBox = typebox
-                STATE.lastPromptGui = promptGui
-                STATE.lastPromptLabel = promptLabel
-
-                if promptGui then
-                    Tracker.ensureListeners(promptGui)
+                if not promptGui then
+                    STATE.promptMissingSince = STATE.promptMissingSince or os.clock()
+                    if os.clock() - STATE.promptMissingSince >= 0.6 then
+                        Tracker.disconnectListeners()
+                        Detector.clearRoundInstances()
+                        STATE.confirmedArrow = nil
+                        STATE.currentlyMyTurn, STATE.wasMyTurn = false, false
+                        STATE.lockedForPlayer = nil
+                        STATE.turnAttempts, STATE.lastAttemptSignature = 0, nil
+                        UI.unlockCombo(false)
+                        UI.setCombo("--", false)
+                        UI.setStatus("ROUND ENDED", "Press F2 to reset bank & recalibrate", COLORS.Amber)
+                    end
+                    return
+                else
+                    STATE.promptMissingSince = nil
                 end
 
-                if not STATE.arrowMotionVerified then
-                    Detector.scanReplicatedTurnState(promptGui, false)
-                    if promptGui then
-                        Detector.tryVerifyMovingArrow()
-                    end
-                    if not STATE.arrowMotionVerified then
-                        UI.setStatus("VERIFYING ARROW", "Waiting for arrow to move (F1 to retry)", COLORS.Amber)
-                        return
-                    end
+                Tracker.ensureListeners(promptGui)
+
+                -- Keep verifying arrow in background even if Box* already locked
+                if not STATE.arrowVerified then
+                    Detector.tryVerifyMovingArrow()
                 end
 
                 local isMyTurn, turnPlr, src, turnStable, plrPos = Detector.detectTurn(promptGui)
                 STATE.currentlyMyTurn = isMyTurn
                 STATE.activeTurnPlayerPos = plrPos
+
+                if not (STATE.arrowVerified or STATE.typeboxVerified) then
+                    UI.setStatus("VERIFYING ARROW", "Waiting for turn to pass (F1 to retry)", COLORS.Amber)
+                    return
+                end
+
+                local typebox = Detector.findTypebox(promptGui, isMyTurn)
+                if typebox then STATE.lastDetectedBox = typebox end
 
                 if src ~= STATE.turnSourceText then
                     STATE.turnSourceText = src
@@ -10157,46 +10359,54 @@ task.spawn(function()
                         Tracker.stashBeforeTurnChange(STATE.lockedCombo)
                     end
                     UI.unlockCombo(true)
+                    STATE.pendingComboText = nil
                     STATE.lockedForPlayer = turnPlr
-                    STATE.trackedTurnPlayer = turnPlr
+                    if promptLabel then
+                        rawCombo = Detector.extractCombo(promptLabel, promptGui)
+                        STATE.lastRawCombo, STATE.lastComboScanAt = rawCombo, os.clock()
+                    end
                 elseif turnPlr and not STATE.lockedForPlayer then
                     STATE.lockedForPlayer = turnPlr
-                    STATE.trackedTurnPlayer = turnPlr
                 end
 
-                if not promptGui then
-                    STATE.promptMissingSince = STATE.promptMissingSince or os.clock()
-                    if os.clock() - STATE.promptMissingSince >= 0.6 then
-                        UI.unlockCombo(false)
-                        STATE.lockedForPlayer = nil
-                        STATE.trackedTurnPlayer = nil
-                        STATE.wasMyTurn = false
-                        STATE.turnAttempts = 0
-                        STATE.lastAttemptSignature = nil
-                        UI.setCombo("--", false)
-                        UI.setStatus("WAITING FOR MATCH", "Press F2 to reset bank between rounds", COLORS.Amber)
-                    end
-                    return
-                else
-                    STATE.promptMissingSince = nil
+                if not STATE.lockedCombo and isMyTurn and promptLabel and (not rawCombo or #rawCombo < 2) then
+                    rawCombo = Detector.extractCombo(promptLabel, promptGui)
+                    STATE.lastRawCombo, STATE.lastComboScanAt = rawCombo, os.clock()
                 end
 
                 if not STATE.lockedCombo and rawCombo and #rawCombo >= 2 then
-                    if not STATE.prevTurnCombo or rawCombo ~= STATE.prevTurnCombo or (os.clock() - STATE.comboUnlockedAt) >= 0.40 then
+                    STATE.pendingComboText = nil
+                    if isMyTurn or not STATE.prevTurnCombo or rawCombo ~= STATE.prevTurnCombo or (os.clock() - STATE.comboUnlockedAt) >= 0.22 then
                         STATE.lockedCombo = rawCombo
                         STATE.prevTurnCombo = nil
                         UI.setCombo(rawCombo, true)
                         Tracker.tryCommitFinished(rawCombo)
                     end
                 elseif STATE.lockedCombo then
-                    UI.setCombo(STATE.lockedCombo, true)
-                    if STATE.finishedOtherWord and rawCombo and rawCombo ~= STATE.finishedOtherCombo then
-                        Tracker.tryCommitFinished(rawCombo)
+                    if rawCombo and #rawCombo >= 2 and rawCombo ~= STATE.lockedCombo then
+                        local isGrowingPrefix = STATE.pendingComboText
+                            and #rawCombo > #STATE.pendingComboText
+                            and rawCombo:sub(1, #STATE.pendingComboText) == STATE.pendingComboText
+
+                        if STATE.pendingComboText ~= rawCombo then
+                            STATE.pendingComboText, STATE.pendingComboSince = rawCombo, os.clock()
+                        elseif not isGrowingPrefix and (isMyTurn or (os.clock() - (STATE.pendingComboSince or 0)) >= 0.22) then
+                            if not isMyTurn then Tracker.stashBeforeTurnChange(STATE.lockedCombo) end
+                            STATE.lockedCombo = rawCombo
+                            STATE.prevTurnCombo, STATE.pendingComboText = nil, nil
+                            UI.setCombo(rawCombo, true)
+                            Tracker.tryCommitFinished(rawCombo)
+                        end
+                    else
+                        STATE.pendingComboText = nil
+                        UI.setCombo(STATE.lockedCombo, true)
+                        if STATE.finishedOtherWord and rawCombo and rawCombo ~= STATE.finishedOtherCombo then
+                            Tracker.tryCommitFinished(rawCombo)
+                        end
                     end
                 end
 
                 local activeCombo = STATE.lockedCombo
-
                 if activeCombo and not isMyTurn then
                     Tracker.observe(typebox, activeCombo, promptLabel)
                 end
@@ -10211,8 +10421,7 @@ task.spawn(function()
                 end
                 if not isMyTurn then
                     STATE.wasMyTurn = false
-                    STATE.turnAttempts = 0
-                    STATE.lastAttemptSignature = nil
+                    STATE.turnAttempts, STATE.lastAttemptSignature = 0, nil
                     UI.setStatus("WAITING FOR TURN", "Current turn: " .. (turnPlr and turnPlr.DisplayName or "Scanning..."), COLORS.Green)
                     return
                 end
@@ -10221,18 +10430,9 @@ task.spawn(function()
                     return
                 end
 
-                local sig = activeCombo .. "|" .. tostring(STATE.lockedForPlayer)
-                if sig ~= STATE.lastAttemptSignature then
-                    STATE.lastAttemptSignature = sig
-                    STATE.turnAttempts = 0
-                end
-                if STATE.turnAttempts >= CONFIG.MaxAttemptsPerTurn then
-                    UI.setStatus("TURN CAP REACHED", "Waiting for next turn (F1 to force)", COLORS.Amber)
-                    return
-                end
-
                 if not STATE.wasMyTurn then
                     STATE.wasMyTurn = true
+                    STATE.turnAttempts = 0
                     UI.setStatus("YOUR TURN!", "Locking combo (" .. src .. ")...", COLORS.Cyan)
                     task.wait(CONFIG.TurnSettleDelay)
 
@@ -10246,14 +10446,14 @@ task.spawn(function()
                         end
                     end
 
-                    local freshRaw, freshGui = Detector.findComboAndGui()
-                    local freshBox = Detector.findTypebox(freshGui)
+                    local freshRaw, freshGui = Detector.findComboAndGui(true)
+                    local freshBox = Detector.findTypebox(freshGui, true)
                     local stillMine, freshPlr = Detector.detectTurn(freshGui or promptGui)
                     if not stillMine or not CONFIG.Enabled then
                         STATE.wasMyTurn = false
                         return
                     end
-                    if not STATE.lockedCombo and freshRaw then
+                    if freshRaw and #freshRaw >= 2 then
                         STATE.lockedCombo = freshRaw
                         UI.setCombo(freshRaw, true)
                     end
@@ -10261,6 +10461,24 @@ task.spawn(function()
                     activeCombo = STATE.lockedCombo or freshRaw
                     typebox = freshBox or typebox
                     promptGui = freshGui or promptGui
+                else
+                    local latestRaw = Detector.findComboAndGui(true)
+                    if latestRaw and #latestRaw >= 2 and latestRaw ~= activeCombo then
+                        activeCombo = latestRaw
+                        STATE.lockedCombo = latestRaw
+                        UI.setCombo(latestRaw, true)
+                        STATE.turnAttempts = 0
+                    end
+                end
+
+                local sig = activeCombo .. "|" .. tostring(STATE.lockedForPlayer)
+                if sig ~= STATE.lastAttemptSignature then
+                    STATE.lastAttemptSignature = sig
+                    STATE.turnAttempts = 0
+                end
+                if STATE.turnAttempts >= CONFIG.MaxAttemptsPerTurn then
+                    UI.setStatus("TURN CAP REACHED", "Waiting for next turn (F1 to force)", COLORS.Amber)
+                    return
                 end
 
                 STATE.turnAttempts += 1
